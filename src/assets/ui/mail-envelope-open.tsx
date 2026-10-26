@@ -150,7 +150,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         ) : null}
         <g clipPath={vector ? undefined : 'url(#ui-mail-envelope-open-clip)'}>
           <g transform={`translate(${LX} ${LY.toFixed(2)})`}>
-            <rect x={0} y={0} width={LW} height={LH} rx={22} fill={C.white} />
+            {/* tepi kertas abu-biru tipis agar surat tetap terbaca di latar putih */}
+            <rect x={0} y={0} width={LW} height={LH} rx={22} fill={shade(C.mist, 0.3)} />
+            <rect x={7} y={7} width={LW - 14} height={LH - 14} rx={16} fill={C.white} />
             {LINES.map((l, i) => {
               const k = vector ? 1 : yoyo(p, 0.32 + i * 0.03, 0.42 + i * 0.03, 0.7, 0.76, out, inOut);
               if (k <= 0.01) return null;

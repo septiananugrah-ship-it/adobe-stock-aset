@@ -59,8 +59,8 @@ export const meta: Meta = {
 const CX = 960;
 const TOP = 236;
 const BOT = 800;
-const SH_D = `M960,${TOP} C1040,286 1120,300 1186,300 L1186,486 C1186,646 1082,746 960,${BOT} C838,746 734,646 734,486 L734,300 C800,300 880,286 960,${TOP} Z`;
-const SH_R = `M960,${TOP} C1040,286 1120,300 1186,300 L1186,486 C1186,646 1082,746 960,${BOT} Z`;
+const SH_D = `M960,${TOP} C1040,286 1110,300 1162,300 Q1186,300 1186,324 L1186,486 C1186,646 1082,746 960,${BOT} C838,746 734,646 734,486 L734,324 Q734,300 758,300 C810,300 880,286 960,${TOP} Z`;
+const SH_R = `M960,${TOP} C1040,286 1110,300 1162,300 Q1186,300 1186,324 L1186,486 C1186,646 1082,746 960,${BOT} Z`;
 const MID = 510; // pusat skala panel dalam
 const IN_S = 0.78;
 const CHECK: [number, number][] = [
@@ -162,10 +162,11 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
             <clipPath id="ui-shield-security-scan-clip">
               <path d={SH_D} />
             </clipPath>
-            {[0, 1, 2, 3].map((k) => (
-              <rect key={k} x={700} y={scanY - 8 - k * 18 * Math.sign(Math.sin(TAU * 2 * seg(p, 0.08, 0.42, (t) => t)) || 1)} width={520} height={16} fill={C.white} opacity={[0.9, 0.35, 0.18, 0.08][k]} />
-            ))}
-            <rect x={700} y={scanY - 3} width={520} height={6} fill={shade(C.sky, 0.5)} />
+            {Array.from({length: 9}, (_, k) => {
+              const dir = Math.sign(Math.sin(TAU * 2 * seg(p, 0.08, 0.42, (t) => t))) || 1;
+              return <rect key={k} x={700} y={scanY - 6 - (k + 1) * 10 * dir} width={520} height={12} fill={C.white} opacity={0.3 * (1 - k / 9) ** 2} />;
+            })}
+            <rect x={700} y={scanY - 6} width={520} height={12} rx={6} fill={shade(C.sky, 0.6)} />
           </g>
         ) : null}
         {/* centang */}
