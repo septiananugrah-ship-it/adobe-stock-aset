@@ -136,7 +136,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       </g>
       {/* garis angin: busur tetap, segmen terang menyapu */}
       {[
-        {x: 560, y: 300, w: 300, ph: 0},
+        {x: 430, y: 300, w: 250, ph: 0},
         {x: 1130, y: 650, w: 240, ph: 0.5},
       ].map((w, i) => {
         const t = mod(p * 2 + w.ph, 1);
