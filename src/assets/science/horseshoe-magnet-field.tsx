@@ -114,7 +114,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const on = vector ? 1 : yoyo(p, 0.08, 0.26, 0.74, 0.9);
   const draw = vector ? 1 : yoyo(p, 0.1, 0.3, 0.72, 0.86, inOut, inOut);
   const hold = seg(p, 0.28, 0.36) * (1 - seg(p, 0.7, 0.76));
-  const kick = 1 + 0.04 * Math.sin(Math.PI * clamp((p - 0.08) / 0.1)) * (1 - clamp((p - 0.08) / 0.1));
+  // denyut kecil saat medan menyala; sin² agar mulai & berhenti tanpa sentakan kecepatan
+  const ku = clamp((p - 0.08) / 0.14);
+  const kick = 1 + 0.035 * Math.pow(Math.sin(Math.PI * ku), 2) * (1 - ku);
   // magnet berayun napas halus
   const bob = 4 * wave(p, 2);
   return (

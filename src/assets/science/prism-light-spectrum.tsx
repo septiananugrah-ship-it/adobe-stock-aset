@@ -5,7 +5,7 @@
 import React from 'react';
 import {clamp, inOut, mix, mod, seg, wave, wave01, yoyo} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
-import {Glow, Sparkle, roundedPath} from '../../kit/shapes';
+import {Sparkle, roundedPath} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
 
 export const meta: Meta = {
@@ -124,23 +124,23 @@ const Torch: React.FC<{on: number}> = ({on}) => {
   const ang = (Math.atan2(DIR[1], DIR[0]) * 180) / Math.PI;
   return (
     <g transform={`translate(${f1(SRC)}) rotate(${ang.toFixed(2)})`}>
-      <rect x={-250} y={-34} width={200} height={68} rx={26} fill={shade(C.navy, -0.2)} />
-      <rect x={-250} y={-34} width={200} height={52} rx={24} fill={C.ink} />
-      <rect x={-200} y={-22} width={70} height={10} rx={5} fill={shade(C.ink, 0.3)} />
+      <rect x={-250} y={-34} width={200} height={68} rx={26} fill={shade(C.slate, -0.22)} />
+      <rect x={-250} y={-34} width={200} height={52} rx={24} fill={C.slate} />
+      <rect x={-200} y={-22} width={70} height={10} rx={5} fill={shade(C.slate, 0.35)} />
       <rect x={-118} y={-46} width={34} height={22} rx={8} fill={C.coral} />
-      <path d="M-60,-40 L-6,-64 Q8,-64 8,-50 L8,50 Q8,64 -6,64 L-60,40 Z" fill={C.slate} />
-      <path d="M-60,-40 L-6,-64 Q8,-64 8,-50 L8,24 L-60,24 Z" fill={shade(C.slate, 0.12)} />
-      <rect x={0} y={-56} width={16} height={112} rx={8} fill={on > 0.5 ? WHITE : C.mist} />
+      <path d="M-60,-40 L-6,-64 Q8,-64 8,-50 L8,50 Q8,64 -6,64 L-60,40 Z" fill={C.steel} />
+      <path d="M-60,-40 L-6,-64 Q8,-64 8,-50 L8,24 L-60,24 Z" fill={C.mist} />
+      <rect x={0} y={-56} width={16} height={112} rx={8} fill={blend(C.cloud, WHITE, on)} />
     </g>
   );
 };
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   // cahaya: kepala sinar maju lalu ekor menyusul (padam bergerak menjauh)
-  const head = vector ? 1 : seg(p, 0.08, 0.34, inOut);
-  const tail = vector ? 0 : seg(p, 0.74, 0.92, inOut);
-  const on = vector ? 1 : yoyo(p, 0.06, 0.1, 0.74, 0.8);
-  const hold = seg(p, 0.34, 0.42) * (1 - seg(p, 0.66, 0.74));
+  const head = vector ? 1 : seg(p, 0.06, 0.32, inOut);
+  const tail = vector ? 0 : seg(p, 0.76, 0.94, inOut);
+  const on = vector ? 1 : yoyo(p, 0.03, 0.07, 0.76, 0.82);
+  const hold = seg(p, 0.32, 0.4) * (1 - seg(p, 0.68, 0.76));
   const rot = vector ? 0 : 0.05 * wave(p, 1, 0.25) * yoyo(p, 0.3, 0.42, 0.62, 0.74);
   const v = verts(rot);
   const L1 = 430; // sumber → masuk
@@ -164,7 +164,6 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const back = v.map((q) => add(q, DEPTH)) as V[];
   return (
     <g transform="translate(9 45) scale(1.12)">
-      <Glow cx={PC[0]} cy={PC[1]} r={300} color={C.sky} strength={0.35 * on} vector={vector} />
       {/* prisma: sisi belakang dan rusuk tebal */}
       <path d={roundedPath(back, 22)} fill={GLASS_BACK} />
       <path d={roundedPath([v[0], add(v[0], DEPTH), add(v[2], DEPTH), v[2]], 10)} fill={GLASS_SIDE} />
@@ -192,7 +191,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
             return <path key={i} d={`M${q.map(f1).join(' L')} Z`} fill={c} />;
           })
         : null}
-      {/* fotón kecil berjalan di tiap warna */}
+      {/* foton kecil berjalan di tiap warna */}
       {!vector && hold > 0.01
         ? SPEC.map((c, i) => {
             const t = mod(p * 4 + i * 0.13, 1);
@@ -203,10 +202,11 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           })
         : null}
       {/* kilau kaca */}
-      <path d={`M${f1(add(mul(add(v[0], v[1]), 0.5), [26, -6]))} L${f1(add(mul(add(mul(v[0], 3), v[1]), 0.25), [18, 10]))}`} stroke={C.white} strokeWidth={12} strokeLinecap="round" />
+      <path d={`M${f1(add(add(mul(v[0], 0.6), mul(v[1], 0.4)), [28, -2]))} L${f1(add(add(mul(v[0], 0.82), mul(v[1], 0.18)), [20, 6]))}`} stroke={C.white} strokeWidth={12} strokeLinecap="round" />
       <circle cx={mid.p1[0] * 0 + v[0][0]} cy={v[0][1] + 58} r={7} fill={C.white} />
       <Torch on={on} />
-      <Glow cx={ENTRY[0]} cy={ENTRY[1]} r={60 + 8 * wave01(p, 4)} color={C.yellow} strength={on * (inK > 0 ? 1 : 0)} vector={vector} />
+      {/* kilau titik masuk: bintang putih opak, tumbuh & berdenyut halus selama cahaya ada di kaca */}
+      <Sparkle x={ENTRY[0] - 4} y={ENTRY[1]} r={30 * Math.sqrt(inK) * (0.85 + 0.15 * wave01(p, 4))} color={C.white} rot={0} />
       <Sparkle x={1360} y={250} r={24 * (0.65 + 0.35 * wave01(p, 2))} color={C.yellow} rot={12} />
       <Sparkle x={1440} y={330} r={12 * (0.6 + 0.4 * wave01(p, 2, 0.4))} color={C.sky} />
       <Sparkle x={520} y={300} r={19 * (0.6 + 0.4 * wave01(p, 2, 0.7))} color={C.purple} rot={-8} />

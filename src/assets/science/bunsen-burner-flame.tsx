@@ -2,9 +2,9 @@
 // Cincin pengatur berputar membuka lubang udara, udara tersedot masuk, nyala berubah menjadi biru
 // dengan kerucut dalam terang yang tegas dan kerucut luar biru-ungu; lalu lubang menutup kembali (loop).
 import React from 'react';
-import {clamp, inOut, mix, mod, seg, wave, wave01, yoyo} from '../../kit/loop';
+import {clamp, inOut, mix, mod, wave, wave01, yoyo} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
-import {Glow, Shadow, Sparkle} from '../../kit/shapes';
+import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
 
 export const meta: Meta = {
@@ -36,6 +36,8 @@ const METAL_D = shade(C.mist, -0.2);
 const METAL_L = shade(C.mist, 0.5);
 const DARK = C.navy;
 const HOSE = C.orange;
+const AURA_Y = blend(C.yellow, C.white, 0.3);
+const AURA_B = blend(C.sky, C.white, 0.15);
 
 /** Lidah api: alas lebar `w0` di y0, tinggi h, setengah lebar maksimum w, ujung bergeser `sw`. */
 const flame = (y0: number, h: number, w: number, w0: number, sw: number, bulge = 1) => {
@@ -51,12 +53,15 @@ const flame = (y0: number, h: number, w: number, w0: number, sw: number, bulge =
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   // m: lubang udara terbuka (0 = tertutup, nyala kuning; 1 = terbuka, nyala biru)
-  const m = vector ? 1 : yoyo(p, 0.12, 0.3, 0.72, 0.9);
-  const mo = inOut(m);
+  // yoyo sudah memakai inOut; jangan di-easing dua kali (perubahan jadi terlalu mendadak)
+  const m = vector ? 1 : yoyo(p, 0.1, 0.32, 0.7, 0.92);
+  const mo = m;
   // nyala kuning: tinggi, bergoyang, memudar saat udara masuk
   const ySw = 16 * wave(p, 5) + 8 * wave(p, 8, 0.3);
   const yH = 330 + 14 * wave(p, 6, 0.2) + 8 * wave(p, 11);
   const yK = 1 - mo;
+  const ySh = mix(1, 0.62, mo); // nyala kuning merendah & menyempit selagi memudar
+  const yO = clamp(yK * 1.4);
   // nyala biru: tumbuh dari bawah
   const bSw = 3 * wave(p, 9) + 2 * wave(p, 13, 0.4);
   const bH = mix(40, 286 + 6 * wave(p, 10), mo);
@@ -64,13 +69,11 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const iH = mix(10, 124 + 3 * wave(p, 12, 0.1), mo);
   const y0 = TOP + 8;
   // cincin berputar: alur bergeser
-  const turn = (p < 0.5 ? seg(p, 0.12, 0.3) : 1 - seg(p, 0.72, 0.9)) * 1.0;
+  const turn = m; // putaran cincin seirama dengan bukaan lubang udara
   const holeW = 6 + 30 * mo;
   return (
     <g>
       <Shadow cx={CX - 40} cy={FLOOR} rx={300} ry={26} vector={vector} />
-      <Glow cx={CX} cy={TOP - 160} r={200 + 16 * wave01(p, 6)} color={C.yellow} strength={0.55 * yK} vector={vector} />
-      <Glow cx={CX} cy={TOP - 120} r={220 + 10 * wave01(p, 8)} color={C.sky} strength={0.55 * mo} vector={vector} />
       {/* selang karet ke keran gas (keluar ke kiri) */}
       <path
         d={`M${CX - 150},${BASE_Y - 8} C${CX - 250},${BASE_Y - 8} ${CX - 270},${FLOOR - 16} ${CX - 360},${FLOOR - 16} L${CX - 430},${FLOOR - 16}`}
@@ -100,11 +103,25 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <rect x={CX - 180} y={FLOOR - 26} width={320} height={18} rx={9} fill={METAL} />
       <path d={`M${CX - 120},${BASE_Y + 22} Q${CX - 104},${BASE_Y + 6} ${CX - 70},${BASE_Y + 2}`} fill="none" stroke={METAL_L} strokeWidth={9} strokeLinecap="round" />
       {/* nyala kuning (di belakang) */}
-      {yK > 0.01 ? (
-        <g opacity={yK >= 0.999 ? undefined : yK}>
-          <path d={flame(y0, yH, 78, BW - 4, ySw)} fill={C.orange} />
-          <path d={flame(y0, yH * 0.8, 58, BW - 8, ySw * 0.8)} fill={C.yellow} />
-          <path d={flame(y0, yH * 0.46, 34, BW - 14, ySw * 0.4)} fill={blend(C.yellow, C.white, 0.55)} />
+      {/* pendar: siluet nyala yang lebih besar & transparan (bukan cakram) */}
+      {!vector && yO > 0.01 ? (
+        <g opacity={yO}>
+          <path d={flame(y0 + 4, yH * ySh * 1.11, 78 * ySh * 1.75, BW + 2, ySw * 1.15)} fill={AURA_Y} opacity={0.12} />
+          <path d={flame(y0 + 4, yH * ySh * 1.05, 78 * ySh * 1.36, BW + 2, ySw * 1.05)} fill={AURA_Y} opacity={0.16} />
+        </g>
+      ) : null}
+      {!vector && mo > 0.01 ? (
+        <g opacity={clamp(mo * 1.6)}>
+          <path d={flame(y0 + 4, bH * 1.2, bW * 1.85, BW + 2, bSw * 1.2)} fill={AURA_B} opacity={0.12} />
+          <path d={flame(y0 + 4, bH * 1.09, bW * 1.4, BW + 2, bSw * 1.1)} fill={AURA_B} opacity={0.16} />
+        </g>
+      ) : null}
+      {/* nyala kuning (di belakang) */}
+      {yO > 0.01 ? (
+        <g opacity={yO >= 0.999 ? undefined : yO}>
+          <path d={flame(y0, yH * ySh, 78 * ySh, BW - 4, ySw * ySh)} fill={C.orange} />
+          <path d={flame(y0, yH * ySh * 0.8, 58 * ySh, BW - 8, ySw * 0.8 * ySh)} fill={C.yellow} />
+          <path d={flame(y0, yH * ySh * 0.46, 34 * ySh, BW - 14, ySw * 0.4 * ySh)} fill={blend(C.yellow, C.white, 0.55)} />
           <path d={flame(y0, 46, 26, BW - 10, 0, 0.9)} fill={C.blue} />
         </g>
       ) : null}
@@ -136,16 +153,27 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       })}
       {/* lubang udara */}
       <rect x={CX - holeW / 2} y={COL_Y + 20} width={holeW} height={COL_H - 40} rx={Math.min(10, holeW / 2)} fill={DARK} />
-      {/* udara tersedot masuk: titik-titik meluncur ke lubang dari kiri & kanan */}
+      {/* udara tersedot masuk: goresan angin pendek meluncur ke lubang dari kiri & kanan */}
       {!vector
         ? [0, 1, 2, 3, 4, 5].map((i) => {
             const t = mod(p * 5 + i / 6, 1);
             const k = mo * Math.sin(Math.PI * t);
             if (k < 0.05) return null;
             const side = i % 2 ? 1 : -1;
-            const x = CX + side * (150 - 140 * inOut(t));
-            const y = COL_Y + COL_H / 2 - 30 * (1 - t) * (i % 3 === 0 ? 1 : -0.6);
-            return <circle key={i} cx={x} cy={y} r={7 + 5 * k} fill={blend(C.sky, C.white, 0.35)} opacity={k} />;
+            const dy = i % 3 === 0 ? -1 : i % 3 === 1 ? 0.15 : 0.9;
+            const pos = (u: number) => [CX + side * (176 - 150 * inOut(u)), COL_Y + COL_H / 2 + 34 * dy * (1 - u)];
+            const [hx, hy] = pos(t);
+            const [tx, ty] = pos(Math.max(0, t - 0.16));
+            return (
+              <path
+                key={i}
+                d={`M${tx.toFixed(1)},${ty.toFixed(1)} L${hx.toFixed(1)},${hy.toFixed(1)}`}
+                stroke={blend(C.sky, C.white, 0.3)}
+                strokeWidth={9}
+                strokeLinecap="round"
+                opacity={k}
+              />
+            );
           })
         : null}
       <Sparkle x={CX + 300} y={260} r={24 * (0.65 + 0.35 * wave01(p, 2))} color={C.yellow} rot={12} />
