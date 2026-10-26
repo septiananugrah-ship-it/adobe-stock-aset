@@ -2,7 +2,7 @@
 import React from 'react';
 import {TAU, clamp, inOut, out, outBack, seg, wave, yoyo} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
-import {Glow, Shadow, Sparkle} from '../../kit/shapes';
+import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
 
 export const meta: Meta = {
@@ -143,11 +143,10 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   return (
     <g>
       <Shadow cx={CX} cy={BODY.y + BODY.h + 42} rx={360} ry={26} vector={vector} />
-      <Glow cx={723} cy={BODY.y - 20} r={420} color={C.yellow} strength={flashK * 2.2} vector={vector} />
       {/* foto keluar dari celah atas (di belakang badan) */}
       <g transform={`rotate(${sway.toFixed(3)} ${CX} ${BODY.y})`}>
-        <rect x={px} y={photoTop + 10} width={PHOTO.w} height={PHOTO.h} rx={18} fill={shade(C.mist, -0.2)} />
-        <rect x={px} y={photoTop} width={PHOTO.w} height={PHOTO.h} rx={18} fill={C.white} />
+        <rect x={px + 10} y={photoTop + 8} width={PHOTO.w} height={PHOTO.h} rx={18} fill={shade(C.mist, -0.12)} />
+        <rect x={px} y={photoTop} width={PHOTO.w} height={PHOTO.h} rx={18} fill={C.white} stroke={C.cloud} strokeWidth={6} />
         <rect x={px + 24} y={photoTop + 24} width={PHOTO.w - 48} height={220} rx={10} fill={dc(blend(C.sky, C.white, 0.35))} />
         <circle cx={px + 210} cy={photoTop + 80} r={28} fill={dc(C.yellow)} />
         <path
@@ -171,7 +170,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         <rect x={BODY.x} y={BODY.y} width={BODY.w} height={30} rx={15} fill={shade(COL, 0.18)} />
         <rect x={BODY.x + 40} y={BODY.y + 8} width={150} height={10} rx={5} fill={shade(COL, 0.5)} />
         {/* celah foto */}
-        <rect x={CX - 170} y={BODY.y + 32} width={340} height={20} rx={10} fill={shade(COL, -0.4)} />
+        <rect x={CX - 172} y={BODY.y + 4} width={344} height={18} rx={9} fill={shade(COL, -0.42)} />
         {/* jendela bidik */}
         <rect x={1150} y={BODY.y + 60} width={92} height={62} rx={18} fill={C.navy} />
         <circle cx={1176} cy={BODY.y + 82} r={9} fill={shade(C.sky, 0.3)} />
@@ -194,6 +193,13 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         {/* lampu kecil */}
         <circle cx={BODY.x + 70} cy={BODY.y + 92} r={18} fill={flashK > 0.05 ? C.yellow : C.green} />
       </g>
+      {/* kilat blitz */}
+      {flashK > 0.01 ? (
+        <g opacity={flashK >= 1 ? undefined : Math.min(1, flashK * 1.4)}>
+          <Sparkle x={723} y={BODY.y - 24} r={150 * out(clamp(flash * 2.5)) * (0.6 + 0.4 * flashK)} color={shade(C.yellow, 0.55)} rot={45 * flash} />
+          <circle cx={723} cy={BODY.y - 24} r={46 * flashK} fill={C.white} />
+        </g>
+      ) : null}
       {/* sinar blitz */}
       {flashK > 0.01
         ? Array.from({length: 7}, (_, i) => {
