@@ -1,5 +1,36 @@
 // Dibuat otomatis oleh scripts/gen-registry.py — jangan diedit manual.
 import type {AssetModule} from './kit/types';
-import * as a0 from './assets/business/monitor-growth-chart';
+import * as a0 from './assets/business/contactless-card-payment';
+import * as a1 from './assets/business/gears-teamwork';
+import * as a2 from './assets/business/monitor-growth-chart';
+import * as a3 from './assets/business/pie-chart-segments';
+import * as a4 from './assets/business/piggy-bank-coins';
+import * as a5 from './assets/business/sales-funnel-coins';
+import * as a6 from './assets/business/startup-rocket-launch';
+import * as a7 from './assets/business/target-arrow-hit';
+import * as a8 from './assets/business/trophy-confetti';
+import * as a9 from './assets/nature/butterfly-sunflower';
+import * as a10 from './assets/nature/coffee-cup-steam';
+import * as a11 from './assets/nature/earth-globe-rotating';
+import * as a12 from './assets/nature/potted-plant-growing';
+import * as a13 from './assets/nature/rain-cloud-puddle';
+import * as a14 from './assets/nature/solar-panel-sun';
+import * as a15 from './assets/nature/wind-turbines-hill';
+import * as a16 from './assets/science/atom-electron-orbits';
+import * as a17 from './assets/science/dna-double-helix';
+import * as a18 from './assets/science/erlenmeyer-flask-bubbles';
+import * as a19 from './assets/science/methane-molecule-3d';
+import * as a20 from './assets/science/microscope-cells';
+import * as a21 from './assets/science/newtons-cradle';
+import * as a22 from './assets/science/solar-system-orbits';
+import * as a23 from './assets/science/test-tube-rack';
+import * as a24 from './assets/ui/chat-typing';
+import * as a25 from './assets/ui/cloud-upload';
+import * as a26 from './assets/ui/heart-like-burst';
+import * as a27 from './assets/ui/location-pin-map';
+import * as a28 from './assets/ui/mail-envelope-open';
+import * as a29 from './assets/ui/notification-bell';
+import * as a30 from './assets/ui/padlock-unlock';
+import * as a31 from './assets/ui/success-check';
 
-export const ASSETS: AssetModule[] = [a0];
+export const ASSETS: AssetModule[] = [a0, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12, a13, a14, a15, a16, a17, a18, a19, a20, a21, a22, a23, a24, a25, a26, a27, a28, a29, a30, a31];
