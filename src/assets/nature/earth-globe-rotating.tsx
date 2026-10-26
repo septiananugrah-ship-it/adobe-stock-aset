@@ -1,7 +1,9 @@
-// Bola bumi berputar (proyeksi ortografis, benua dari garis pantai bujur/lintang yang disederhanakan),
-// awan melintas di depan permukaan, kilau di sekitar. Satu putaran penuh (360°) per loop → mulus.
+// Bola bumi berputar ke timur: dengan kutub utara di atas, permukaan bergerak dari kiri ke kanan
+// (Afrika → Atlantik → Amerika → Pasifik → Asia). Sumbu miring 23,4°, proyeksi ortografis.
+// Benua & awan dipotong tepat di cakrawala (bagian di balik bola diganti busur tepi piringan), jadi tidak ada
+// serpihan/sliver di tepi. Daratan & awan dua nada mengikuti bayangan samudra. Satu putaran 360° per loop → mulus.
 import React from 'react';
-import {clamp, TAU, wave, wave01} from '../../kit/loop';
+import {mod, TAU, wave, wave01} from '../../kit/loop';
 import {C, shade} from '../../kit/palette';
 import {Glow, Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
@@ -9,23 +11,33 @@ import type {DrawProps, Meta} from '../../kit/types';
 export const meta: Meta = {
   id: 'nature-earth-globe-rotating',
   theme: 'nature',
-  title: 'Planet Earth globe rotating with continents and drifting clouds, world icon seamless loop animation with alpha channel',
+  title: 'Planet Earth globe rotating eastward with continents and clouds, world icon seamless loop animation with alpha channel',
   keywords: [
     'earth', 'globe', 'planet', 'world', 'rotating', 'spinning', 'continents', 'world map', 'earth day', 'global',
     'geography', 'ocean', 'environment', 'ecology', 'save the planet', 'climate', 'sustainability', 'nature',
-    'international', 'travel', 'communication', 'globalization', 'green planet', 'blue planet', 'space', 'flat design',
+    'international', 'travel', 'globalization', 'green planet', 'blue planet', 'clouds', 'space', 'flat design',
     'illustration', 'icon', 'cartoon', 'animation', 'motion graphics', 'seamless loop', 'looped', 'alpha channel',
     'transparent background', 'isolated', '4k', 'explainer', 'presentation', 'infographic', 'social media',
   ],
   category: 5,
   seconds: 10,
-  vectorP: 0.17,
+  vectorP: 0.14,
 };
 
+type P2 = [number, number];
+type V3 = [number, number, number];
+const DEG = Math.PI / 180;
 const G = {cx: 960, cy: 494, r: 300};
-const LAT0 = (14 * Math.PI) / 180; // pusat pandang sedikit di utara khatulistiwa
-const TILT = -16; // kemiringan sumbu di layar (derajat)
-const LON_START = 20;
+const LAT0 = 14 * DEG; // pusat pandang sedikit di utara khatulistiwa
+const TILT = -23.4 * DEG; // kemiringan sumbu bumi di layar
+const LON_START = 20; // p = 0: Afrika di tengah
+const SL = Math.sin(LAT0);
+const CL = Math.cos(LAT0);
+const CT = Math.cos(TILT);
+const ST = Math.sin(TILT);
+// bagian terang samudra/daratan: lingkaran bergeser ke kiri atas, bersinggungan dari dalam dengan piringan
+const OFF = 0.065 * G.r;
+const LIT = {x: -OFF, y: -OFF, r: G.r - Math.hypot(OFF, OFF)};
 
 // Garis pantai disederhanakan [bujur, lintang, ...]
 const LAND: {pts: number[]; ice?: boolean}[] = [
@@ -62,9 +74,10 @@ const LAND: {pts: number[]; ice?: boolean}[] = [
   {pts: [172.7,-34.4,174.6,-36.2,175.9,-37.5,178.5,-37.7,177,-39.3,176,-41.3,174.6,-41.3,175.2,-40.4,173.8,-39.2,174.6,-38.2]}, // Selandia Baru utara
   {pts: [172.7,-40.5,174.3,-41.6,173,-43.8,171,-45,169.3,-46.6,166.5,-46,168.3,-44.1,170.6,-42.8]}, // Selandia Baru selatan
 ];
-// densifikasi: titik tiap ≤ 1.5° agar tepi halus & tepi limb mulus
-const DENSE = LAND.map(({pts, ice}) => {
-  const out: [number, number][] = [];
+
+// densifikasi: titik tiap ≤ 1.5° agar tepi halus
+const densify = (pts: number[]) => {
+  const out: P2[] = [];
   const n = pts.length / 2;
   for (let i = 0; i < n; i++) {
     const a = [pts[2 * i], pts[2 * i + 1]];
@@ -73,82 +86,249 @@ const DENSE = LAND.map(({pts, ice}) => {
     const k = Math.max(1, Math.ceil(d / 1.5));
     for (let j = 0; j < k; j++) out.push([a[0] + ((b[0] - a[0]) * j) / k, a[1] + ((b[1] - a[1]) * j) / k]);
   }
-  return {pts: out, ice};
-});
+  return out;
+};
+const DENSE = LAND.map(({pts, ice}) => ({ring: densify(pts), ice}));
 
-const DEG = Math.PI / 180;
-const project = (lon: number, lat: number, lon0: number) => {
+// ---- proyeksi & pemotongan ----
+const toView = (lon: number, lat: number, lon0: number): V3 => {
   const l = (lon - lon0) * DEG;
   const f = lat * DEG;
-  const cosc = Math.sin(LAT0) * Math.sin(f) + Math.cos(LAT0) * Math.cos(f) * Math.cos(l);
-  let x = Math.cos(f) * Math.sin(l);
-  let y = Math.cos(LAT0) * Math.sin(f) - Math.sin(LAT0) * Math.cos(f) * Math.cos(l);
-  if (cosc < 0) {
-    // titik di belakang → tempel ke tepi piringan (limb)
-    const m = Math.hypot(x, y) || 1;
-    x /= m;
-    y /= m;
+  const X = Math.cos(f) * Math.sin(l);
+  const Y = Math.sin(f);
+  const Z = Math.cos(f) * Math.cos(l);
+  return [X, CL * Y - SL * Z, SL * Y + CL * Z]; // x kanan, y atas, z ke arah penonton
+};
+/** koordinat pandang (cakram satuan) → layar relatif pusat bola (px), sudah dimiringkan */
+const scr = (x: number, y: number): P2 => {
+  const X = G.r * x;
+  const Y = -G.r * y;
+  return [X * CT - Y * ST, X * ST + Y * CT];
+};
+const limb = (a: number) => scr(Math.cos(a), Math.sin(a));
+
+type Chain = {pts: P2[]; a0: number; a1: number};
+/** luas bertanda (rumus tali sepatu); tandanya = arah putar cincin */
+const area = (pts: P2[]) => pts.reduce((s, [x, y], i) => {
+  const [x2, y2] = pts[(i + 1) % pts.length];
+  return s + x * y2 - x2 * y;
+}, 0);
+/**
+ * Sambung rantai yang terpotong lingkaran dengan busur lingkaran. Arah busur = arah putar poligon
+ * (bagian dalam irisan tetap di sisi yang sama), lalu dari tiap titik keluar menuju titik masuk terdekat.
+ */
+const stitch = (chains: Chain[], arcPt: (a: number) => P2, dir: number) => {
+  const nextEntry = (a: number) => {
+    let best = 0;
+    let bd = Infinity;
+    chains.forEach((c, i) => {
+      const d = dir > 0 ? mod(c.a0 - a, TAU) : mod(a - c.a0, TAU);
+      if (d < bd) {
+        bd = d;
+        best = i;
+      }
+    });
+    return {i: best, d: bd};
+  };
+  const used = new Set<number>();
+  const rings: P2[][] = [];
+  for (let s = 0; s < chains.length; s++) {
+    if (used.has(s)) continue;
+    const ring: P2[] = [];
+    let c = s;
+    for (let guard = 0; guard <= chains.length; guard++) {
+      used.add(c);
+      ring.push(...chains[c].pts);
+      const {i: nx, d} = nextEntry(chains[c].a1);
+      const k = Math.max(1, Math.ceil(d / (2 * DEG)));
+      for (let m = 1; m < k; m++) ring.push(arcPt(chains[c].a1 + (dir * d * m) / k));
+      if (nx === s || used.has(nx)) break;
+      c = nx;
+    }
+    rings.push(ring);
   }
-  return {x: G.r * x, y: -G.r * y, cosc};
+  return rings;
 };
 
-const Cloud: React.FC<{s: number}> = ({s}) => (
-  <g transform={`scale(${s})`}>
-    <rect x={-58} y={-6} width={116} height={30} rx={15} fill={C.mist} />
-    <circle cx={-20} cy={-6} r={24} fill={C.white} />
-    <circle cx={16} cy={-14} r={30} fill={C.white} />
-    <rect x={-58} y={-12} width={116} height={30} rx={15} fill={C.white} />
-  </g>
-);
+/** Potong cincin bujur/lintang ke belahan yang tampak; bagian di belakang diganti busur tepi piringan. */
+const clipHemi = (ring: P2[], lon0: number): P2[][] => {
+  const n = ring.length;
+  const v = ring.map(([lo, la]) => toView(lo, la, lon0));
+  const vis = v.map((q) => q[2] > 0);
+  const nVis = vis.filter(Boolean).length;
+  if (nVis === 0) return [];
+  if (nVis === n) return [v.map((q) => scr(q[0], q[1]))];
+  const cross = (a: V3, b: V3) => {
+    const t = a[2] / (a[2] - b[2]);
+    return Math.atan2(a[1] + (b[1] - a[1]) * t, a[0] + (b[0] - a[0]) * t);
+  };
+  const s = vis.findIndex((b, i) => b && !vis[(i - 1 + n) % n]);
+  const chains: Chain[] = [];
+  let cur: P2[] = [];
+  let a0 = 0;
+  for (let k = 0; k < n; k++) {
+    const i = (s + k) % n;
+    if (!vis[i]) continue;
+    const h = (i - 1 + n) % n;
+    const j = (i + 1) % n;
+    if (!vis[h]) {
+      a0 = cross(v[h], v[i]);
+      cur = [limb(a0)];
+    }
+    cur.push(scr(v[i][0], v[i][1]));
+    if (!vis[j]) {
+      const a1 = cross(v[i], v[j]);
+      cur.push(limb(a1));
+      chains.push({pts: cur, a0, a1});
+    }
+  }
+  // proyeksi sisi depan mempertahankan arah putar bujur/lintang (timur = kanan, utara = atas)
+  return stitch(chains, limb, Math.sign(area(ring)));
+};
+
+/** Irisan poligon layar dengan lingkaran (cx, cy, r). */
+const clipCircle = (poly: P2[], cx: number, cy: number, r: number): P2[][] => {
+  const n = poly.length;
+  const dir = Math.sign(area(poly));
+  if (Math.abs(area(poly)) < 4) return []; // serpihan sub-piksel: abaikan
+  const ins = poly.map(([x, y]) => Math.hypot(x - cx, y - cy) < r);
+  const nIn = ins.filter(Boolean).length;
+  if (nIn === n) return [poly];
+  if (nIn === 0) return [];
+  const arc = (a: number): P2 => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const cross = (a: P2, b: P2) => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const fx = a[0] - cx;
+    const fy = a[1] - cy;
+    const A = dx * dx + dy * dy;
+    const B = 2 * (fx * dx + fy * dy);
+    const Cc = fx * fx + fy * fy - r * r;
+    const disc = Math.sqrt(Math.max(0, B * B - 4 * A * Cc));
+    let t = (-B - disc) / (2 * A);
+    if (t < 0 || t > 1) t = (-B + disc) / (2 * A);
+    t = Math.min(1, Math.max(0, t));
+    return Math.atan2(a[1] + dy * t - cy, a[0] + dx * t - cx);
+  };
+  const s = ins.findIndex((b, i) => b && !ins[(i - 1 + n) % n]);
+  const chains: Chain[] = [];
+  let cur: P2[] = [];
+  let a0 = 0;
+  for (let k = 0; k < n; k++) {
+    const i = (s + k) % n;
+    if (!ins[i]) continue;
+    const h = (i - 1 + n) % n;
+    const j = (i + 1) % n;
+    if (!ins[h]) {
+      a0 = cross(poly[h], poly[i]);
+      cur = [arc(a0)];
+    }
+    cur.push(poly[i]);
+    if (!ins[j]) {
+      const a1 = cross(poly[i], poly[j]);
+      cur.push(arc(a1));
+      chains.push({pts: cur, a0, a1});
+    }
+  }
+  return stitch(chains, arc, dir);
+};
+
+const pathOf = (rings: P2[][]) =>
+  rings
+    .filter((r) => r.length > 2)
+    .map((r) => `M${r.map(([x, y]) => `${(G.cx + x).toFixed(1)},${(G.cy + y).toFixed(1)}`).join(' L')} Z`)
+    .join(' ');
+
+// ---- awan di permukaan (bujur/lintang), digambar dari bentuk datar lokal (derajat) ----
+type Prim = {x: number; y: number; r: number; w?: number};
+const CLOUD: Prim[] = [
+  {x: 0, y: -0.6, r: 2.9, w: 22.3}, // alas kapsul (w = lebar total)
+  {x: -3.85, y: 1.15, r: 4.6},
+  {x: 3.1, y: 2.7, r: 5.8},
+];
+const primRing = (lonC: number, latC: number, s: number, q: Prim, dy = 0): P2[] => {
+  const pts: P2[] = [];
+  const k = 1 / Math.cos(latC * DEG);
+  const put = (x: number, y: number) => pts.push([lonC + x * s * k, latC + (y + dy) * s]);
+  if (q.w) {
+    const hw = q.w / 2 - q.r;
+    for (let i = 0; i <= 14; i++) {
+      const a = -Math.PI / 2 + (Math.PI * i) / 14;
+      put(q.x + hw + q.r * Math.cos(a), q.y + q.r * Math.sin(a));
+    }
+    for (let i = 0; i <= 14; i++) {
+      const a = Math.PI / 2 + (Math.PI * i) / 14;
+      put(q.x - hw + q.r * Math.cos(a), q.y + q.r * Math.sin(a));
+    }
+  } else {
+    for (let i = 0; i < 30; i++) {
+      const a = (TAU * i) / 30;
+      put(q.x + q.r * Math.cos(a), q.y + q.r * Math.sin(a));
+    }
+  }
+  return pts;
+};
+const CLOUDS = [
+  {lon: -40, lat: 36, s: 1},
+  {lon: -14, lat: -24, s: 0.85},
+  {lon: -118, lat: 10, s: 0.9},
+  {lon: -165, lat: -24, s: 0.95},
+  {lon: 148, lat: 30, s: 0.95},
+  {lon: 78, lat: -14, s: 0.9},
+];
+
+/** Gambar daftar cincin layar dua nada: seluruhnya warna bayangan, bagian terang ditimpa warna dasar. */
+const TwoTone: React.FC<{rings: P2[][]; base: string; dark: string}> = (props) => {
+  const {base, dark} = props;
+  let {rings} = props;
+  rings = rings.filter((r) => Math.abs(area(r)) >= 4);
+  if (!rings.length) return null;
+  const lit = rings.flatMap((r) => clipCircle(r, LIT.x, LIT.y, LIT.r));
+  return (
+    <g>
+      <path d={pathOf(rings)} fill={dark} />
+      {lit.length ? <path d={pathOf(lit)} fill={base} /> : null}
+    </g>
+  );
+};
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
-  const lon0 = LON_START - 360 * p; // permukaan bergerak ke timur (kanan)
-  const land = DENSE.map(({pts, ice}, i) => {
-    const pr = pts.map(([lo, la]) => project(lo, la, lon0));
-    if (!pr.some((q) => q.cosc > 0)) return null;
-    const d = `M${pr.map((q) => `${q.x.toFixed(1)},${q.y.toFixed(1)}`).join(' L')} Z`;
-    return <path key={i} d={d} fill={ice ? C.white : C.green} />;
-  });
-  // awan di permukaan (bergerak lebih cepat dari rotasi bumi)
-  const clouds = [
-    {lon: -40, lat: 38, s: 1},
-    {lon: 70, lat: -12, s: 0.85},
-    {lon: 170, lat: 22, s: 0.95},
-    {lon: -130, lat: -30, s: 0.8},
-  ].map((c, i) => {
-    const q = project(c.lon - 360 * 2 * p, c.lat, lon0);
-    if (q.cosc <= 0.08) return null;
-    const f = clamp((q.cosc - 0.08) * 4);
-    if (vector && f < 1) return null;
-    const sx = Math.sqrt(Math.max(0, 1 - (q.x / G.r) ** 2));
+  const lon0 = LON_START - 360 * p; // bujur pusat pandang berkurang → permukaan bergerak ke timur (kanan)
+  const land = DENSE.map(({ring, ice}, i) => (
+    <TwoTone key={i} rings={clipHemi(ring, lon0)} base={ice ? C.white : C.green} dark={ice ? C.cloud : shade(C.green, -0.16)} />
+  ));
+  const clouds = CLOUDS.map((c, i) => {
+    // pose vektor: hanya awan yang utuh (tidak terpotong cakrawala)
+    if (vector && toView(c.lon, c.lat, lon0)[2] < 0.5) return null;
+    const under = CLOUD.flatMap((q) => clipHemi(primRing(c.lon, c.lat, c.s, q, -1.3), lon0));
+    const top = CLOUD.flatMap((q) => clipHemi(primRing(c.lon, c.lat, c.s, q), lon0));
     return (
-      <g key={i} transform={`translate(${q.x.toFixed(1)} ${q.y.toFixed(1)}) rotate(${-TILT}) scale(${(sx * c.s).toFixed(3)} ${c.s})`} opacity={vector || f >= 1 ? undefined : f}>
-        <Cloud s={1} />
+      <g key={i}>
+        <path d={pathOf(under.filter((r) => Math.abs(area(r)) >= 4))} fill={C.mist} />
+        <TwoTone rings={top} base={C.white} dark={C.cloud} />
       </g>
     );
   });
+  const R = G.r;
   return (
     <g>
       <Shadow cx={G.cx} cy={880} rx={230} ry={26} vector={vector} />
-      <Glow cx={G.cx} cy={G.cy} r={G.r * 1.3} color={C.sky} strength={0.35 + 0.15 * wave(p, 2)} vector={vector} />
+      <Glow cx={G.cx} cy={G.cy} r={R * 1.3} color={C.sky} strength={0.35 + 0.15 * wave(p, 2)} vector={vector} />
       {/* atmosfer */}
-      <circle cx={G.cx} cy={G.cy} r={G.r + 18} fill={shade(C.sky, 0.45)} />
-      {/* samudra */}
-      <circle cx={G.cx} cy={G.cy} r={G.r} fill={shade(C.blue, -0.14)} />
-      <circle cx={G.cx - G.r * 0.06} cy={G.cy - G.r * 0.06} r={G.r * 0.92} fill={C.blue} />
-      {/* benua (di dalam grup miring) */}
-      <g transform={`translate(${G.cx} ${G.cy}) rotate(${TILT})`}>
-        {land}
-        {clouds}
-      </g>
+      <circle cx={G.cx} cy={G.cy} r={R + 20} fill={shade(C.sky, 0.45)} />
+      {/* samudra: bayangan sabit di kanan bawah */}
+      <circle cx={G.cx} cy={G.cy} r={R} fill={shade(C.blue, -0.16)} />
+      <circle cx={G.cx + LIT.x} cy={G.cy + LIT.y} r={LIT.r} fill={C.blue} />
+      {land}
+      {clouds}
       {/* kilau kaca */}
-      <path d={`M${G.cx - G.r * 0.78},${G.cy - G.r * 0.22} A${G.r * 0.82},${G.r * 0.82} 0 0 1 ${G.cx - G.r * 0.3},${G.cy - G.r * 0.76}`} fill="none" stroke={shade(C.sky, 0.6)} strokeWidth={14} strokeLinecap="round" />
-      <circle cx={G.cx - G.r * 0.2} cy={G.cy - G.r * 0.83} r={8} fill={shade(C.sky, 0.6)} />
+      <path d={`M${G.cx - R * 0.8},${G.cy - R * 0.2} A${R * 0.83},${R * 0.83} 0 0 1 ${G.cx - R * 0.32},${G.cy - R * 0.76}`} fill="none" stroke={shade(C.sky, 0.62)} strokeWidth={14} strokeLinecap="round" />
+      <circle cx={G.cx - R * 0.17} cy={G.cy - R * 0.84} r={8} fill={shade(C.sky, 0.62)} />
       {/* kilau sekitar */}
       {[
-        {x: G.cx + G.r + 90, y: G.cy - G.r + 30, r: 26, c: C.yellow, ph: 0},
-        {x: G.cx - G.r - 80, y: G.cy + 120, r: 18, c: C.sky, ph: 0.33},
-        {x: G.cx + G.r + 40, y: G.cy + G.r - 60, r: 15, c: C.yellow, ph: 0.66},
+        {x: G.cx + R + 92, y: G.cy - R + 34, r: 28, c: C.yellow, ph: 0},
+        {x: G.cx - R - 84, y: G.cy + 126, r: 20, c: C.sky, ph: 0.33},
+        {x: G.cx + R + 46, y: G.cy + R - 56, r: 16, c: C.yellow, ph: 0.66},
       ].map((s, i) => (
         <Sparkle key={i} x={s.x} y={s.y} r={s.r * (vector ? 1 : 0.55 + 0.45 * wave01(p, 3, s.ph))} color={s.c} rot={20 * Math.sin(TAU * (p + s.ph))} />
       ))}
