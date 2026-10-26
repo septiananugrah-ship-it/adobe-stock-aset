@@ -1,5 +1,6 @@
 // Tata surya mini: Matahari berdenyut di pusat, lima planet dalam urutan nyata (Merkurius, Venus, Bumi + Bulan,
 // Mars, Jupiter) mengorbit pada elips miring; makin jauh makin lambat (5, 4, 3, 2, 1 putaran per loop).
+// Arah orbit (dan Bulan) berlawanan jarum jam dilihat dari atas (utara): kanan → belakang → kiri → depan.
 // Sisi siang tiap planet selalu menghadap Matahari; planet di belakang lewat di balik Matahari.
 import React from 'react';
 import {TAU, wave, wave01} from '../../kit/loop';
@@ -13,14 +14,14 @@ export const meta: Meta = {
   title: 'Solar system with planets orbiting the sun, Earth and Moon, astronomy animation, seamless loop with alpha channel',
   keywords: [
     'solar system', 'planets', 'sun', 'orbit', 'astronomy', 'space', 'earth', 'moon', 'mars', 'jupiter', 'venus', 'mercury',
-    'universe', 'galaxy', 'cosmos', 'science', 'planetary', 'revolution', 'gravity', 'star', 'education', 'school',
-    'geography', 'exploration', 'icon', 'flat design', 'illustration', 'animation', 'motion graphics', 'seamless loop',
+    'universe', 'planet', 'cosmos', 'science', 'planetary', 'revolution', 'gravity', 'star', 'education', 'school',
+    'celestial', 'exploration', 'icon', 'flat design', 'illustration', 'animation', 'motion graphics', 'seamless loop',
     'looped', 'alpha channel', 'transparent background', 'isolated', 'explainer', 'presentation', 'social media', '4k',
     'cosmic', 'orbiting', 'heliocentric',
   ],
   category: 16,
   seconds: 10,
-  vectorP: 0.06,
+  vectorP: 0.1,
 };
 
 const CX = 960;
@@ -128,30 +129,31 @@ const PlanetBody: React.FC<{pl: Planet; x: number; y: number; r: number; p: numb
 };
 
 const STARS = [
-  [300, 250, 18, C.yellow, 0],
-  [380, 180, 10, C.sky, 0.3],
+  [300, 250, 20, C.yellow, 0],
+  [380, 180, 12, C.sky, 0.3],
   [1610, 260, 22, C.yellow, 0.55],
-  [1540, 190, 11, C.sky, 0.8],
-  [360, 830, 14, C.yellow, 0.15],
-  [1580, 860, 16, C.yellow, 0.7],
-  [1660, 790, 9, C.sky, 0.45],
-  [270, 760, 9, C.violet, 0.9],
-  [960, 175, 12, C.yellow, 0.35],
-  [990, 905, 10, C.sky, 0.6],
+  [1540, 190, 13, C.sky, 0.8],
+  [360, 830, 15, C.yellow, 0.15],
+  [1580, 860, 17, C.yellow, 0.7],
+  [1660, 790, 12, C.sky, 0.45],
+  [270, 760, 12, C.violet, 0.9],
+  [960, 175, 13, C.yellow, 0.35],
+  [990, 905, 12, C.sky, 0.6],
 ] as const;
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const back: React.ReactNode[] = [];
   const front: React.ReactNode[] = [];
   PLANETS.forEach((pl, i) => {
-    const th = TAU * (pl.k * p + pl.off);
+    // sudut berkurang → berlawanan jarum jam dilihat dari atas (sisi depan = bawah elips)
+    const th = TAU * (pl.off - pl.k * p);
     const q = pos(pl.rx, th);
     const s = 1 + 0.1 * q.z;
     const r = pl.r * s;
     const nodes: React.ReactNode[] = [];
     if (pl.kind === 'earth') {
-      // Bulan mengorbit Bumi (6 putaran per loop), lewat di depan/belakang Bumi
-      const mt = TAU * 6 * p;
+      // Bulan mengorbit Bumi (6 putaran per loop, arah sama), lewat di depan/belakang Bumi
+      const mt = -TAU * 6 * p;
       const mx = q.x + 62 * s * Math.cos(mt);
       const my = q.y + 24 * s * Math.sin(mt);
       const moon = <PlanetBody key="moon" pl={{rx: 0, r: 9, k: 0, off: 0, col: C.mist, kind: 'rock'}} x={mx} y={my} r={12 * s} p={p} />;
@@ -168,22 +170,23 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   return (
     <g>
       {STARS.map(([x, y, r, c, o], i) => (
-        <Sparkle key={i} x={x} y={y} r={r * (0.5 + 0.5 * wave01(p, 2 + (i % 2), o))} color={c} rot={(i * 17) % 40} />
+        <Sparkle key={i} x={x} y={y} r={r * (0.6 + 0.4 * wave01(p, 2 + (i % 2), o))} color={c} rot={(i * 17) % 40} />
+      ))}
+      <Glow cx={CX} cy={CY} r={190 * sunPulse} color={C.yellow} strength={0.8} vector={vector} />
+      {/* lintasan: setengah belakang lebih gelap; semua di bawah planet (planet tak pernah tertimpa garis) */}
+      {PLANETS.map((pl, i) => (
+        <path key={`ob${i}`} d={halfOrbit(pl.rx, false)} stroke={shade(ORBIT, -0.12)} strokeWidth={8} fill="none" strokeLinecap="round" />
       ))}
       {PLANETS.map((pl, i) => (
-        <path key={`ob${i}`} d={halfOrbit(pl.rx, false)} stroke={shade(ORBIT, -0.12)} strokeWidth={7} fill="none" strokeLinecap="round" />
+        <path key={`of${i}`} d={halfOrbit(pl.rx, true)} stroke={ORBIT} strokeWidth={8} fill="none" strokeLinecap="round" />
       ))}
       {back}
       {/* Matahari */}
-      <Glow cx={CX} cy={CY} r={200 * sunPulse} color={C.yellow} strength={1.0} vector={vector} />
       <circle cx={CX} cy={CY} r={104 * sunPulse} fill={C.orange} />
       <circle cx={CX - 6} cy={CY - 6} r={91 * sunPulse} fill={C.yellow} />
       <circle cx={CX + 24} cy={CY + 28} r={14} fill={shade(C.yellow, -0.08)} />
       <circle cx={CX - 30} cy={CY + 34} r={9} fill={shade(C.yellow, -0.08)} />
       <ellipse cx={CX - 40} cy={CY - 44} rx={24} ry={14} fill={shade(C.yellow, 0.55)} transform={`rotate(-35 ${CX - 40} ${CY - 44})`} />
-      {PLANETS.map((pl, i) => (
-        <path key={`of${i}`} d={halfOrbit(pl.rx, true)} stroke={ORBIT} strokeWidth={7} fill="none" strokeLinecap="round" />
-      ))}
       {front}
     </g>
   );

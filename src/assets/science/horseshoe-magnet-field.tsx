@@ -2,7 +2,7 @@
 // serbuk besi berputar menyelaraskan diri dengan arah medan (bertingkat dari dekat kutub), lalu kembali acak.
 // Model medan 2D: dua kutub titik (N, S) → garis medan = busur lingkaran yang melewati kedua kutub.
 import React from 'react';
-import {TAU, clamp, inOut, mix, out, outBack, rng, seg, wave, wave01, yoyo} from '../../kit/loop';
+import {TAU, clamp, inOut, mix, outBack, rng, seg, wave, wave01, yoyo} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
 import {Glow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
@@ -181,18 +181,6 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <Sparkle x={CX + 470} y={330} r={13 * (0.6 + 0.4 * wave01(p, 2, 0.4))} color={C.sky} />
       <Sparkle x={CX - 420} y={290} r={20 * (0.6 + 0.4 * wave01(p, 2, 0.7))} color={C.yellow} rot={-8} />
       <Sparkle x={CX - 480} y={220} r={11 * (0.6 + 0.4 * wave01(p, 2, 0.2))} color={RED} />
-      {/* percikan energi saat menyala */}
-      {!vector
-        ? [0, 1, 2, 3, 4, 5].map((i) => {
-            const t = clamp((p - 0.1 - i * 0.012) / 0.16);
-            if (t <= 0 || t >= 1) return null;
-            const ang = -Math.PI / 2 + (i - 2.5) * 0.42;
-            const r0 = RO + 30 + 70 * out(t);
-            return (
-              <circle key={i} cx={CX + r0 * Math.cos(ang)} cy={UY + r0 * Math.sin(ang)} r={9 * (1 - t)} fill={C.yellow} />
-            );
-          })
-        : null}
     </g>
   );
 };

@@ -48,7 +48,8 @@ const WHITE = blend(C.yellow, C.white, 0.72);
 
 const GLASS = blend(C.sky, C.white, 0.78);
 const GLASS_EDGE = blend(C.sky, C.white, 0.45);
-const GLASS_BACK = blend(C.sky, C.white, 0.6);
+const GLASS_BACK = blend(C.sky, C.white, 0.3);
+const GLASS_SIDE = blend(C.sky, C.white, 0.3);
 
 /** Simpul prisma (puncak, kiri-bawah, kanan-bawah) diputar rot radian. */
 const verts = (rot: number): V[] =>
@@ -162,11 +163,11 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const pVio = tr[SPEC.length - 1][1];
   const back = v.map((q) => add(q, DEPTH)) as V[];
   return (
-    <g>
+    <g transform="translate(9 45) scale(1.12)">
       <Glow cx={PC[0]} cy={PC[1]} r={300} color={C.sky} strength={0.35 * on} vector={vector} />
       {/* prisma: sisi belakang dan rusuk tebal */}
       <path d={roundedPath(back, 22)} fill={GLASS_BACK} />
-      <path d={roundedPath([v[0], add(v[0], DEPTH), add(v[2], DEPTH), v[2]], 10)} fill={GLASS_EDGE} />
+      <path d={roundedPath([v[0], add(v[0], DEPTH), add(v[2], DEPTH), v[2]], 10)} fill={GLASS_SIDE} />
       <path d={roundedPath(v, 22)} fill={GLASS_EDGE} />
       <path d={roundedPath(verts(rot).map((q) => add(PC, mul(sub(q, PC), 0.9))) as V[], 16)} fill={GLASS} />
       {/* sinar putih masuk */}
@@ -178,7 +179,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       ) : null}
       {/* cahaya di dalam kaca */}
       {inK > 0.01 ? (
-        <path d={`M${f1(add(ENTRY, mul(perp, -BEAM_W / 2)))} L${f1(pRed.p2)} L${f1(pVio.p2)} L${f1(add(ENTRY, mul(perp, BEAM_W / 2)))} Z`} fill={WHITE} opacity={vector || inK >= 1 ? undefined : inK} />
+        <path d={`M${f1(add(ENTRY, mul(perp, -BEAM_W / 2)))} L${f1(pRed.p2)} L${f1(pVio.p2)} L${f1(add(ENTRY, mul(perp, BEAM_W / 2)))} Z`} fill={blend(C.yellow, C.white, 0.55)} opacity={vector || inK >= 1 ? undefined : inK} />
       ) : null}
       {/* kipas spektrum */}
       {fanB - fanA > 1

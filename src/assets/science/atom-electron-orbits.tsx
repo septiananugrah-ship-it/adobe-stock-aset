@@ -55,9 +55,9 @@ const Ball: React.FC<{x: number; y: number; r: number; c: string}> = ({x, y, r, 
 
 // Inti: bipiramida pentagonal (5 di cincin + 2 di kutub), 3 proton + 4 neutron
 const NUC = [
-  ...Array.from({length: 5}, (_, i) => ({x: 52 * Math.cos((i * TAU) / 5), y: 0, z: 52 * Math.sin((i * TAU) / 5)})),
-  {x: 0, y: -46, z: 0},
-  {x: 0, y: 46, z: 0},
+  ...Array.from({length: 5}, (_, i) => ({x: 58 * Math.cos((i * TAU) / 5), y: 0, z: 58 * Math.sin((i * TAU) / 5)})),
+  {x: 0, y: -52, z: 0},
+  {x: 0, y: 52, z: 0},
 ];
 const PROTON = [true, false, true, false, false, true, false];
 
@@ -84,12 +84,18 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   // elektron + jejak
   ELECTRONS.forEach((e, j) => {
     const th = TAU * (2 * p + e.off);
-    for (let k = 16; k >= 1; k--) {
-      const q = orbitPt(e.orbit, th - k * 0.034);
-      const s = 0.72 + 0.28 * (0.5 + 0.5 * q.z);
-      const r = (19 - k * 0.95) * s;
-      const col = shade(C.yellow, q.z > 0 ? -0.01 * k : -0.1 - 0.01 * k);
-      (q.z > 0 ? front : back).push(<circle key={`t${j}-${k}`} cx={q.x} cy={q.y} r={r} fill={col} />);
+    // jejak komet: potongan garis bersambung yang makin tipis (tanpa celah/manik-manik)
+    const TRAIL = 18;
+    for (let k = TRAIL; k >= 1; k--) {
+      const a = orbitPt(e.orbit, th - k * 0.03);
+      const b = orbitPt(e.orbit, th - (k - 1) * 0.03);
+      const z = (a.z + b.z) / 2;
+      const s = 0.72 + 0.28 * (0.5 + 0.5 * z);
+      const w = 34 * (1 - (k - 0.5) / TRAIL) * s + 3;
+      const col = blend(shade(C.yellow, z > 0 ? 0 : -0.12), shade(C.yellow, 0.35), (k / TRAIL) * 0.6);
+      (z > 0 ? front : back).push(
+        <path key={`t${j}-${k}`} d={`M${a.x.toFixed(1)},${a.y.toFixed(1)} L${b.x.toFixed(1)},${b.y.toFixed(1)}`} stroke={col} strokeWidth={w} strokeLinecap="round" />,
+      );
     }
     const q = orbitPt(e.orbit, th);
     const s = 0.78 + 0.22 * (0.5 + 0.5 * q.z);
@@ -114,11 +120,10 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const pulse = inOutSine(wave01(p, 2));
   return (
     <g>
-      <Glow cx={CX} cy={CY} r={150 + 20 * pulse} color={C.coral} strength={0.9} vector={vector} />
-      <Glow cx={CX} cy={CY} r={420} color={ORBIT} strength={0.25} vector={vector} />
+      <Glow cx={CX} cy={CY} r={130 + 16 * pulse} color={C.coral} strength={0.7} vector={vector} />
       {back}
       {nuc.map((n) => (
-        <Ball key={n.i} x={n.x} y={n.y} r={38 * (1 + n.z / 480)} c={PROTON[n.i] ? C.coral : C.steel} />
+        <Ball key={n.i} x={n.x} y={n.y} r={43 * (1 + n.z / 480)} c={PROTON[n.i] ? C.coral : C.steel} />
       ))}
       {front}
       <Sparkle x={CX + 420} y={CY - 290} r={24 * (0.6 + 0.4 * wave01(p, 2))} color={C.yellow} rot={10} />
@@ -131,7 +136,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         const t = mod(p + i / 4, 1);
         const a = (i * TAU) / 4 + 0.6;
         const r = 470 + 30 * Math.sin(TAU * t);
-        return <circle key={i} cx={CX + r * Math.cos(a)} cy={CY + r * 0.55 * Math.sin(a)} r={6 + 3 * wave01(p, 2, i / 4)} fill={ORBIT} />;
+        return <circle key={i} cx={CX + r * Math.cos(a)} cy={CY + r * 0.55 * Math.sin(a)} r={8 + 3 * wave01(p, 2, i / 4)} fill={ORBIT} />;
       })}
     </g>
   );

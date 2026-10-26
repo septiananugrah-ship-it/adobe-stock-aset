@@ -86,10 +86,10 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           {/* gelembung */}
           {BUB[i].map((b, j) => {
             const q = mod(p * b.k + b.off, 1);
-            const y = mix(t.yb - 30, t.lv + 12, q);
+            const y = mix(t.yb - 30, t.lv + 12, 0.7 * q + 0.3 * q * q); // sedikit dipercepat (gaya apung)
             const g = clamp(q / 0.15) * clamp((1 - q) / 0.12);
             const r = b.r * out(g) * (0.85 + 0.15 * q) * (j < 3 ? 1 : 0.4 + 0.6 * t.f);
-            if (r < 1.5) return null;
+            if (r < (vector ? 5 : 1.5)) return null;
             const x = t.x + b.u * (ihw - r - 6) + 4 * Math.sin(TAU * (q * 2 + b.off));
             return (
               <g key={j}>
@@ -122,7 +122,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
             const o = t.f * Math.sqrt(Math.sin(Math.PI * q));
             const r = (10 + 10 * q) * o;
             if (r < 1.5) return null;
-            return <circle key={`v${j}`} cx={t.x + (j - 1) * 12 + 10 * Math.sin(TAU * (q + j * 0.3))} cy={TOP - 40 - 90 * out(q)} r={r} fill={blend(t.col, C.white, 0.6)} />;
+            return <circle key={`v${j}`} cx={t.x + (j - 1) * 12 + 10 * Math.sin(TAU * (q + j * 0.3))} cy={TOP - 40 - 90 * out(q)} r={r} fill={blend(t.col, C.white, 0.45)} />;
           })}
         </g>
       ))}

@@ -27,6 +27,7 @@ const BODY = C.blue;
 const METAL = blend(C.mist, C.steel, 0.25);
 const SAMPLE = {x: 865 + OX, y: 578};
 const MAG = {x: 1290 + OX, y: 400, r: 196};
+const SLIDE = 270; // geseran mikroskop ke tengah saat jendela tertutup
 const FIELD = blend(C.yellow, C.white, 0.82);
 const CYTO = blend(C.pink, C.white, 0.5);
 const MEMB = C.pink;
@@ -78,27 +79,36 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const zoom = vector ? 1 : yoyo(p, 0.12, 0.24, 0.8, 0.88, (t) => outBack(t, 1.3), inOut);
   const cone = vector ? 1 : yoyo(p, 0.1, 0.18, 0.82, 0.9, out, inOut);
   const knob = 140 * seg(p, 0.08, 0.22) - 140 * seg(p, 0.84, 0.94);
+  // saat istirahat mikroskop berdiri di tengah; bergeser ke kiri memberi ruang bagi jendela pembesaran
+  const slide = vector ? 1 : yoyo(p, 0.05, 0.19, 0.83, 0.95);
+  const sx = SLIDE * (1 - slide);
+  const S = {x: SAMPLE.x + sx, y: SAMPLE.y};
   // garis singgung kerucut pembesaran dari sampel ke lingkaran
-  const dx = MAG.x - SAMPLE.x;
-  const dy = MAG.y - SAMPLE.y;
+  const dx = MAG.x - S.x;
+  const dy = MAG.y - S.y;
   const dist = Math.hypot(dx, dy);
   const base = Math.atan2(dy, dx);
   const half = Math.asin(Math.min(0.99, (MAG.r * zoom) / dist));
   const tan = (sgn: number) => {
     const a = base + sgn * half;
     const l = Math.sqrt(Math.max(0, dist * dist - (MAG.r * zoom) ** 2));
-    return [SAMPLE.x + l * Math.cos(a), SAMPLE.y + l * Math.sin(a)];
+    return [S.x + l * Math.cos(a), S.y + l * Math.sin(a)];
   };
   const t1 = tan(1);
   const t2 = tan(-1);
   const coneCol = blend(C.yellow, C.white, 0.6);
   return (
     <g>
-      <Shadow cx={780 + OX} cy={842} rx={260} ry={26} vector={vector} />
       {/* kerucut pembesaran (di belakang mikroskop) */}
       {cone > 0.01 && zoom > 0.01 ? (
-        <path d={`M${SAMPLE.x},${SAMPLE.y} L${t1[0].toFixed(1)},${t1[1].toFixed(1)} L${MAG.x},${MAG.y} L${t2[0].toFixed(1)},${t2[1].toFixed(1)} Z`} fill={coneCol} opacity={vector || cone >= 1 ? undefined : cone} />
+        <path d={`M${S.x.toFixed(1)},${S.y} L${t1[0].toFixed(1)},${t1[1].toFixed(1)} L${MAG.x},${MAG.y} L${t2[0].toFixed(1)},${t2[1].toFixed(1)} Z`} fill={coneCol} opacity={vector || cone >= 1 ? undefined : cone} />
       ) : null}
+      <g transform={sx ? `translate(${sx.toFixed(2)} 0)` : undefined}>
+      <Shadow cx={780 + OX} cy={842} rx={260} ry={26} vector={vector} />
+      {/* lengan (di belakang alas: ujung bawahnya tertutup alas) */}
+      <path d={`M${700 + OX},${790} L${700 + OX},${560} C${700 + OX},${470} ${730 + OX},${420} ${812 + OX},${392}`} stroke={shade(BODY, -0.18)} strokeWidth={70} strokeLinecap="round" fill="none" />
+      <path d={`M${692 + OX},${790} L${692 + OX},${560} C${692 + OX},${470} ${722 + OX},${414} ${806 + OX},${386}`} stroke={BODY} strokeWidth={54} strokeLinecap="round" fill="none" />
+      <path d={`M${680 + OX},${720} L${680 + OX},${575}`} stroke={shade(BODY, 0.38)} strokeWidth={10} strokeLinecap="round" />
       {/* alas */}
       <rect x={600 + OX} y={792} width={360} height={48} rx={22} fill={shade(BODY, -0.22)} />
       <rect x={600 + OX} y={792} width={360} height={34} rx={17} fill={BODY} />
@@ -106,16 +116,12 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* lampu di alas */}
       <Glow cx={SAMPLE.x} cy={706} r={90} color={C.yellow} strength={1.3 * lamp} vector={vector} />
       <rect x={SAMPLE.x - 42} y={756} width={84} height={40} rx={12} fill={shade(METAL, -0.12)} />
-      <path d={`M${SAMPLE.x - 34},${758} A34,34 0 0 1 ${SAMPLE.x + 34},${758} Z`} fill={blend(shade(C.yellow, -0.35), C.yellow, lamp)} />
-      <circle cx={SAMPLE.x - 10} cy={744} r={7} fill={blend(shade(C.yellow, -0.2), C.white, lamp)} />
+      <path d={`M${SAMPLE.x - 34},${758} A34,34 0 0 1 ${SAMPLE.x + 34},${758} Z`} fill={blend(blend(C.mist, C.yellow, 0.3), C.yellow, lamp)} />
+      <circle cx={SAMPLE.x - 10} cy={744} r={7} fill={blend(C.cloud, C.white, lamp)} />
       {/* berkas cahaya ke atas (motion) */}
       {!vector && lamp > 0.01 ? (
         <path d={`M${SAMPLE.x - 26},${724} L${SAMPLE.x - 14},${620} L${SAMPLE.x + 14},${620} L${SAMPLE.x + 26},${724} Z`} fill={C.yellow} opacity={0.28 * lamp} />
       ) : null}
-      {/* lengan */}
-      <path d={`M${700 + OX},${806} L${700 + OX},${560} C${700 + OX},${470} ${730 + OX},${420} ${812 + OX},${392}`} stroke={shade(BODY, -0.18)} strokeWidth={70} strokeLinecap="round" fill="none" />
-      <path d={`M${692 + OX},${806} L${692 + OX},${560} C${692 + OX},${470} ${722 + OX},${414} ${806 + OX},${386}`} stroke={BODY} strokeWidth={54} strokeLinecap="round" fill="none" />
-      <path d={`M${680 + OX},${720} L${680 + OX},${575}`} stroke={shade(BODY, 0.38)} strokeWidth={10} strokeLinecap="round" />
       {/* tabung okuler miring */}
       <g transform={`rotate(-24 ${846 + OX} ${372})`}>
         <rect x={816 + OX} y={214} width={60} height={170} rx={14} fill={shade(METAL, -0.14)} />
@@ -155,6 +161,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <circle cx={697 + OX} cy={647} r={11} fill={shade(METAL, 0.4)} />
       {/* kilau sampel saat menyala */}
       <Sparkle x={SAMPLE.x - 46} y={SAMPLE.y - 30} r={16 * lamp * (0.7 + 0.3 * wave01(p, 3))} color={C.yellow} rot={15} />
+      <Sparkle x={560 + OX} y={330} r={18 * (0.55 + 0.45 * wave01(p, 2, 0.7))} color={C.yellow} rot={-10} />
+      <Sparkle x={590 + OX} y={260} r={11 * (0.55 + 0.45 * wave01(p, 2, 0.2))} color={C.pink} />
+      </g>
       {/* jendela pembesaran */}
       {zoom > 0.01 ? (
         <g transform={`translate(${MAG.x} ${MAG.y}) scale(${zoom}) translate(${-MAG.x} ${-MAG.y})`}>
@@ -196,8 +205,6 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       ) : null}
       <Sparkle x={MAG.x + MAG.r + 50} y={MAG.y - MAG.r + 10} r={24 * zoom * (0.65 + 0.35 * wave01(p, 2))} color={C.yellow} rot={12} />
       <Sparkle x={MAG.x + MAG.r + 70} y={MAG.y - MAG.r + 80} r={12 * zoom * (0.6 + 0.4 * wave01(p, 2, 0.4))} color={C.sky} />
-      <Sparkle x={560 + OX} y={330} r={18 * (0.55 + 0.45 * wave01(p, 2, 0.7))} color={C.yellow} rot={-10} />
-      <Sparkle x={590 + OX} y={260} r={10 * (0.55 + 0.45 * wave01(p, 2, 0.2))} color={C.pink} />
     </g>
   );
 };

@@ -3,7 +3,7 @@
 import React from 'react';
 import {TAU, clamp, inOut, mix, mod, out, rng, wave, wave01, yoyo} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
-import {Glow, Shadow, Sparkle} from '../../kit/shapes';
+import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
 
 export const meta: Meta = {
@@ -12,8 +12,8 @@ export const meta: Meta = {
   title: 'Bubbling Erlenmeyer flask with rising bubbles and vapor, chemistry lab animation, seamless loop with alpha channel',
   keywords: [
     'erlenmeyer flask', 'chemistry', 'laboratory', 'flask', 'bubbles', 'chemical reaction', 'science', 'experiment', 'liquid',
-    'boiling', 'vapor', 'lab glassware', 'research', 'potion', 'education', 'school', 'biology', 'pharmacy', 'medicine',
-    'scientist', 'test', 'formula', 'discovery', 'innovation', 'icon', 'flat design', 'illustration', 'animation',
+    'boiling', 'vapor', 'lab glassware', 'research', 'potion', 'education', 'school', 'lab', 'pharmacy', 'medicine',
+    'scientist', 'chemical', 'formula', 'discovery', 'innovation', 'icon', 'flat design', 'illustration', 'animation',
     'motion graphics', 'seamless loop', 'looped', 'alpha channel', 'transparent background', 'isolated', 'explainer',
     'presentation', 'social media', '4k', 'green', 'glass',
   ],
@@ -107,6 +107,21 @@ const liquidPath = (lv: number, amp: number, ph: number, insetL = 0, insetR = 0,
   );
 };
 
+/** Pita tipis tepat di bawah permukaan bergelombang (tebal th), dipotong mengikuti dinding kerucut. */
+const surfaceBand = (lv: number, amp: number, ph: number, th: number) => {
+  const steps = 24;
+  const sy = (x: number) => lv + amp * Math.sin((x - CX) / 46 + ph) * Math.sin(Math.PI * clamp((x - (CX - innerHW(lv))) / (2 * innerHW(lv))));
+  const top: string[] = [];
+  const bot: string[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const xt = mix(CX - innerHW(lv), CX + innerHW(lv), i / steps);
+    top.push(`${i ? 'L' : 'M'}${xt.toFixed(1)},${sy(xt).toFixed(1)}`);
+    const xb = mix(CX + innerHW(lv + th), CX - innerHW(lv + th), i / steps);
+    bot.push(`L${xb.toFixed(1)},${(sy(xb) + th).toFixed(1)}`);
+  }
+  return top.join(' ') + ' ' + bot.join(' ') + ' Z';
+};
+
 // Gelembung: posisi horizontal relatif, ukuran, kecepatan (putaran per loop, bulat), fase
 const R = rng(7);
 const BUBBLES = Array.from({length: 16}, (_, i) => ({
@@ -124,17 +139,18 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const lv = 548 - 10 * boil + 3 * wave(p, 2);
   const amp = 3 + 7 * boil;
   const ph = TAU * 3 * p;
-  const glowS = 0.6 + 0.4 * boil;
+  const placed: {x: number; y: number; r: number}[] = [];
   return (
     <g>
       <Shadow cx={CX} cy={BOT + 14} rx={320} ry={30} vector={vector} />
-      <Glow cx={CX} cy={640} r={330} color={LIQ} strength={0.35 * glowS} vector={vector} />
       {/* kaca */}
       <path d={OUTER} fill={GLASS_EDGE} />
       <path d={INNER} fill={GLASS} />
       {/* cairan + pita bayangan kanan */}
       <path d={liquidPath(lv, amp, ph)} fill={LIQ_DARK} />
       <path d={liquidPath(lv, amp, ph, 0, 74)} fill={LIQ} />
+      {/* pita permukaan (meniskus) yang lebih terang, ikut beriak */}
+      <path d={surfaceBand(lv, amp, ph, 13)} fill={shade(LIQ, 0.22)} />
       {/* garis kilau permukaan */}
       <path
         d={`M${CX - innerHW(lv) + 34},${lv + 18} L${CX - innerHW(lv) + 110},${lv + 18}`}
@@ -145,13 +161,19 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* gelembung */}
       {BUBBLES.map((b, i) => {
         const t = mod(p * b.k + b.off, 1);
+        if (vector && t > 0.88) return null; // ilustrasi diam: tanpa gelembung yang sedang pecah di permukaan
         const y = mix(IN_BOT - 24, lv + 8, inOut(t) * 0.35 + t * 0.65);
         const g = clamp(t / 0.12) * (t > 0.9 ? 1 - (t - 0.9) / 0.1 : 1);
         const live = i < 8 ? 1 : boil; // gelembung tambahan hanya saat didih kuat
         const r = b.r * (0.65 + 0.35 * t) * out(g) * (vector ? 1 : live);
-        if (r < 1) return null;
+        if (r < (vector ? 6 : 1)) return null;
         const lim = innerHW(y) - r - 16;
         const x = CX + b.u * lim + 10 * Math.sin(TAU * (t * 2 + b.wob));
+        // ilustrasi diam: lewati gelembung yang menumpuk gelembung lain agar susunan rapi
+        if (vector) {
+          if (placed.some((q) => Math.hypot(q.x - x, q.y - y) < q.r + r + 6)) return null;
+          placed.push({x, y, r});
+        }
         return (
           <g key={i}>
             <circle cx={x} cy={y} r={r} fill={shade(LIQ, 0.28)} />

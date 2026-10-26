@@ -56,22 +56,29 @@ const Ball: React.FC<{x: number; y: number; r: number; c: string; dark: string}>
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const a = TAU * p;
   const bob = 10 * wave(p, 2);
-  const proj = (v: number[]) => {
+  const orient = (v: number[]) => {
     // orientasi awal miring (tak ada ikatan sejajar sumbu putar) → semua H ikut berputar
     let q = rotZ(rotX(v, 0.62), 0.3);
     q = rotY(q, a);
-    q = rotX(q, -0.3);
+    return rotX(q, -0.3);
+  };
+  /** Proyeksi titik 3D (satuan: panjang ikatan) ke layar dengan perspektif lembut. */
+  const proj = (q: number[]) => {
     const k = F / (F - q[2] * BOND);
     return {x: CX + q[0] * BOND * k, y: CY + 20 + q[1] * BOND * k + bob, z: q[2], k};
   };
   const c0 = {x: CX, y: CY + 20 + bob, z: 0, k: 1};
   const items: {z: number; el: React.ReactNode}[] = [];
   items.push({z: 0, el: <Ball key="c" x={c0.x} y={c0.y} r={R_C} c={CARBON} dark={shade(CARBON, -0.28)} />});
-  H_DIRS.forEach((d, i) => {
+  H_DIRS.forEach((d0, i) => {
+    const d = orient(d0);
     const h = proj(d);
-    // batang: dari pusat C ke pusat H, tebal mengikuti perspektif, kilau tipis di satu sisi
-    const dx = h.x - c0.x;
-    const dy = h.y - c0.y;
+    // batang hanya bagian yang terlihat: dari permukaan bola C ke permukaan bola H (bukan dari pusat ke pusat),
+    // sehingga batang tidak menimpa wajah bola di depannya.
+    const s0 = proj(d.map((v) => (v * R_C * 0.92) / BOND));
+    const s1 = proj(d.map((v) => v * (1 - (R_H * 0.92) / BOND)));
+    const dx = s1.x - s0.x;
+    const dy = s1.y - s0.y;
     const len = Math.hypot(dx, dy) || 1;
     const nx = -dy / len;
     const ny = dx / len;
@@ -81,8 +88,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       z: h.z / 2 - 0.001,
       el: (
         <g key={`b${i}`}>
-          <path d={`M${c0.x},${c0.y} L${h.x},${h.y}`} stroke={shade(STICK, -0.14)} strokeWidth={w} strokeLinecap="round" />
-          <path d={`M${c0.x + nx * off},${c0.y + ny * off} L${h.x + nx * off},${h.y + ny * off}`} stroke={STICK} strokeWidth={w * 0.5} strokeLinecap="round" />
+          <path d={`M${s0.x.toFixed(1)},${s0.y.toFixed(1)} L${s1.x.toFixed(1)},${s1.y.toFixed(1)}`} stroke={shade(STICK, -0.14)} strokeWidth={w} strokeLinecap="round" />
+          <path d={`M${(s0.x + nx * off).toFixed(1)},${(s0.y + ny * off).toFixed(1)} L${(s1.x + nx * off).toFixed(1)},${(s1.y + ny * off).toFixed(1)}`} stroke={STICK} strokeWidth={w * 0.5} strokeLinecap="round" />
         </g>
       ),
     });
@@ -91,7 +98,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   items.sort((u, v) => u.z - v.z);
   return (
     <g>
-      <Glow cx={CX} cy={CY + 20} r={420} color={C.sky} strength={0.4 + 0.2 * wave01(p, 2)} vector={vector} />
+      <Glow cx={CX} cy={CY + 20 + bob} r={230} color={C.sky} strength={0.3 + 0.15 * wave01(p, 2)} vector={vector} />
       {items.map((it) => it.el)}
       <Sparkle x={CX + 440} y={CY - 260} r={26 * (0.6 + 0.4 * wave01(p, 2))} color={C.yellow} rot={12} />
       <Sparkle x={CX + 500} y={CY - 180} r={13 * (0.6 + 0.4 * wave01(p, 2, 0.4))} color={C.sky} />

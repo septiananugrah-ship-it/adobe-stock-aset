@@ -69,7 +69,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   return (
     <g>
       <Shadow cx={CX - 40} cy={FLOOR} rx={300} ry={26} vector={vector} />
-      <Glow cx={CX} cy={TOP - 160} r={250 + 20 * wave01(p, 6)} color={C.yellow} strength={0.55 * yK} vector={vector} />
+      <Glow cx={CX} cy={TOP - 160} r={200 + 16 * wave01(p, 6)} color={C.yellow} strength={0.55 * yK} vector={vector} />
       <Glow cx={CX} cy={TOP - 120} r={220 + 10 * wave01(p, 8)} color={C.sky} strength={0.55 * mo} vector={vector} />
       {/* selang karet ke keran gas (keluar ke kiri) */}
       <path

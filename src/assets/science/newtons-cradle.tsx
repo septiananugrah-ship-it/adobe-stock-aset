@@ -1,7 +1,7 @@
 // Ayunan Newton: bola kiri dilepas, menumbuk deretan bola, dan momentum diteruskan sehingga hanya bola
 // paling kanan yang terlempar dengan sudut sama, lalu kembali (gerak pendulum sinus, 4 siklus per loop).
 import React from 'react';
-import {TAU, clamp, out, wave, wave01} from '../../kit/loop';
+import {TAU, clamp, out, wave01} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
 import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
@@ -51,13 +51,11 @@ const Ball: React.FC<{x: number; y: number; r: number}> = ({x, y, r}) => (
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const s = Math.sin(TAU * CYCLES * p);
   const th = AMP * s; // + : bola kanan keluar, − : bola kiri keluar
-  // getaran sangat kecil pada bola tengah saat tumbukan (|s| ≈ 0)
-  const impact = Math.max(0, 1 - Math.abs(s) / 0.12);
   const angles = Array.from({length: N}, (_, i) => (i === 0 ? Math.min(0, th) : i === N - 1 ? Math.max(0, th) : 0));
   const balls = angles.map((a, i) => {
     const px = pivotX(i);
-    const jig = i > 0 && i < N - 1 ? 1.5 * impact * wave(p, 64, i * 0.25) : 0;
-    return {px, a, x: px + L * Math.sin(a) + jig, y: PIV_Y + L * Math.cos(a)};
+    // bola tengah diam: momentum diteruskan lewat tumbukan elastis
+    return {px, a, x: px + L * Math.sin(a), y: PIV_Y + L * Math.cos(a)};
   });
   // fase untuk percikan: tepat setelah tumbukan, sisi yang menerima momentum
   const ph = (CYCLES * p) % 1; // 0: tumbukan kiri→kanan, 0.5: kanan→kiri
@@ -74,7 +72,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* bayangan bola di alas (motion saja) */}
       {!vector
         ? balls.map((b, i) => (
-            <ellipse key={i} cx={b.x} cy={BASE_Y + 4} rx={BR * 0.9} ry={8} fill="#0B1020" opacity={0.1 * clamp(1 - (BASE_Y - b.y - BR) / 260)} />
+            <ellipse key={i} cx={b.x} cy={BASE_Y + 12} rx={BR * 0.9} ry={7} fill="#0B1020" opacity={0.1 * clamp(1 - (BASE_Y - b.y - BR) / 260)} />
           ))
         : null}
       {/* tiang & palang */}
@@ -89,20 +87,6 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <rect x={POST_X[0] - 24} y={BAR_Y - 16} width={POST_X[1] - POST_X[0] + 48} height={32} rx={16} fill={shade(FRAME, -0.16)} />
       <rect x={POST_X[0] - 24} y={BAR_Y - 16} width={POST_X[1] - POST_X[0] + 48} height={22} rx={11} fill={FRAME} />
       <rect x={POST_X[0] + 20} y={BAR_Y - 10} width={300} height={7} rx={3.5} fill={shade(FRAME, 0.32)} />
-      {/* jejak busur gerak (motion saja) */}
-      {!vector
-        ? [0, N - 1].map((i) => {
-            const b = balls[i];
-            if (Math.abs(b.a) < 0.04) return null;
-            const a0 = b.a;
-            const a1 = b.a - Math.sign(b.a) * Math.min(Math.abs(b.a), 0.28) * (Math.abs(Math.cos(TAU * CYCLES * p)) * 0.9 + 0.1);
-            const r = L;
-            const pt = (a: number) => `${(b.px + r * Math.sin(a)).toFixed(1)},${(PIV_Y + r * Math.cos(a)).toFixed(1)}`;
-            return (
-              <path key={i} d={`M${pt(a0)} A${r},${r} 0 0 ${a0 > a1 ? 1 : 0} ${pt(a1)}`} stroke={blend(BALL, C.white, 0.3)} strokeWidth={BR * 1.1} strokeLinecap="round" fill="none" opacity={0.18} />
-            );
-          })
-        : null}
       {/* tali */}
       {balls.map((b, i) => (
         <path key={i} d={`M${b.px},${PIV_Y} L${b.x.toFixed(1)},${b.y.toFixed(1)}`} stroke={shade(FRAME, -0.1)} strokeWidth={8} strokeLinecap="round" />
