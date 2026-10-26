@@ -2,6 +2,7 @@ export const ASSET_THEMES = {
  "business-contactless-card-payment": "business",
  "business-gears-teamwork": "business",
  "business-hourglass-time-money": "business",
+ "business-laptop-kpi-dashboard": "business",
  "business-monitor-growth-chart": "business",
  "business-pie-chart-segments": "business",
  "business-piggy-bank-coins": "business",
