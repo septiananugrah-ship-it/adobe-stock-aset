@@ -1,7 +1,8 @@
-// Tiga roda gigi saling mengunci dan berputar dengan rasio gigi yang benar (18 : 12 : 9).
-// Satu loop = 18 gigi lewat titik kontak → roda besar 1 putaran, sedang 1,5, kecil 2 (loop mulus).
+// Tiga roda gigi saling mengunci dengan rasio gigi yang benar (16 : 10 : 8) dan arah putar berselang-seling.
+// Satu loop = 16 gigi lewat titik kontak → roda besar 1 putaran, sedang 1,6 putaran (= 216°, simetri 5 jari-jari
+// & 10 gigi), kecil 2 putaran. Semua bentuk simetris terhadap sisa putarannya, jadi loop mulus tanpa lompatan.
 import React from 'react';
-import {TAU, inOut, mod, wave, wave01, yoyo} from '../../kit/loop';
+import {TAU, inOut, wave, wave01, yoyo} from '../../kit/loop';
 import {C, shade} from '../../kit/palette';
 import {Shadow, Sparkle, arcPath, roundedPath} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
@@ -22,123 +23,145 @@ export const meta: Meta = {
   vectorP: 0.5,
 };
 
-// Modul gigi m: jari-jari jarak bagi rp = m·N/2, puncak rp + m, kaki rp − 1,25 m.
-const M = 24;
-type Gear = {n: number; cx: number; cy: number; col: string; spokes: number};
-const A: Gear = {n: 18, cx: 812, cy: 590, col: C.blue, spokes: 6};
-const AB = (-36 * Math.PI) / 180; // arah A → B
-const BC = (58 * Math.PI) / 180; // arah B → C
+// Modul gigi M: jari-jari lingkaran jarak bagi rp = M·N/2 (sama untuk semua roda → bisa saling mengunci).
+const M = 27;
+const ADD = 0.78 * M; // tinggi kepala gigi
+const DED = 0.98 * M; // tinggi kaki gigi
+type Kind = 'spokes' | 'holes' | 'ring';
+type Gear = {n: number; cx: number; cy: number; col: string; kind: Kind; count: number};
 const rp = (g: Gear) => (M * g.n) / 2;
-const B: Gear = {n: 12, cx: 0, cy: 0, col: C.yellow, spokes: 4};
+const A: Gear = {n: 16, cx: 812, cy: 612, col: C.blue, kind: 'spokes', count: 6};
+const B: Gear = {n: 10, cx: 0, cy: 0, col: C.yellow, kind: 'holes', count: 5};
+const Cg: Gear = {n: 8, cx: 0, cy: 0, col: C.teal, kind: 'ring', count: 0};
+const AB = (-38 * Math.PI) / 180; // arah A → B
+const BC = (60 * Math.PI) / 180; // arah B → C
 B.cx = A.cx + (rp(A) + rp(B)) * Math.cos(AB);
 B.cy = A.cy + (rp(A) + rp(B)) * Math.sin(AB);
-const Cg: Gear = {n: 9, cx: 0, cy: 0, col: C.teal, spokes: 5};
 Cg.cx = B.cx + (rp(B) + rp(Cg)) * Math.cos(BC);
 Cg.cy = B.cy + (rp(B) + rp(Cg)) * Math.sin(BC);
+const GEARS = [A, B, Cg];
 
-/** Garis luar roda gigi dengan gigi trapesium (gigi ke-0 di sudut 0, sumbu +x). */
-const gearOutline = (g: Gear) => {
+/**
+ * Garis luar roda gigi (gigi ke-0 di sudut 0). Gigi trapesium gemuk: lebar ±0,235 jarak-bagi di lingkaran bagi
+ * (celah sedikit lebih lebar dari gigi → ada ruang main, gigi tidak saling menembus).
+ */
+export const gearPoints = (g: Gear): [number, number][] => {
   const r0 = rp(g);
-  const ra = r0 + M * 0.92;
-  const rf = r0 - M * 1.1;
+  const ra = r0 + ADD;
+  const rf = r0 - DED;
   const pitch = TAU / g.n;
   const pts: [number, number][] = [];
   for (let j = 0; j < g.n; j++) {
     const a = j * pitch;
     for (const [da, r] of [
-      [-0.27, rf],
-      [-0.135, ra],
-      [0.135, ra],
-      [0.27, rf],
+      [-0.3, rf],
+      [-0.16, ra],
+      [0.16, ra],
+      [0.3, rf],
     ] as const) {
       const ang = a + da * pitch;
       pts.push([r * Math.cos(ang), r * Math.sin(ang)]);
     }
   }
-  return roundedPath(pts, 7);
+  return pts;
 };
-const OUT = [A, B, Cg].map(gearOutline);
+const OUT = GEARS.map((g) => roundedPath(gearPoints(g), 9));
 
-/** Sudut (rad) tiap roda pada kemajuan δ (rad roda A). Fase dipilih agar gigi A masuk celah B, dst. */
-const angles = (d: number) => {
-  const a = AB + d;
-  // B: celah menghadap A (arah AB+π) saat A punya gigi di arah AB
-  const b = AB + Math.PI + Math.PI / B.n - (d * A.n) / B.n;
-  // C: saat d = 0 gigi B terdekat berada e rad melewati arah BC; B maju +e setara C mundur e·nB/nC
-  const pitchB = TAU / B.n;
-  const e = mod(AB + Math.PI + Math.PI / B.n - BC, pitchB);
-  const c = BC + Math.PI + Math.PI / Cg.n - (e * B.n) / Cg.n + (d * A.n) / Cg.n;
+/**
+ * Sudut roda yang digerakkan agar giginya masuk tepat ke celah roda penggerak (menggelinding tanpa selip).
+ * φ = arah penggerak → digerakkan; θ1 = sudut penggerak.
+ */
+const driven = (g1: Gear, th1: number, g2: Gear, phi: number) => phi + Math.PI - Math.PI / g2.n + ((phi - th1) * g1.n) / g2.n;
+
+/** Sudut tiap roda (rad, positif = searah jarum jam di layar) pada kemajuan δ roda A. */
+export const angles = (d: number) => {
+  const a = d;
+  const b = driven(A, a, B, AB);
+  const c = driven(B, b, Cg, BC);
   return [a, b, c];
 };
+export const GEOM = {A, B, Cg, M, ADD, DED};
 
-const GearBody: React.FC<{g: Gear; path: string; ang: number; vector?: boolean}> = ({g, path, ang}) => {
+const GearBody: React.FC<{g: Gear; i: number; ang: number}> = ({g, i, ang}) => {
   const r0 = rp(g);
-  const rf = r0 - M * 1.1;
+  const rf = r0 - DED;
   const deg = (ang * 180) / Math.PI;
-  const dark = shade(g.col, -0.16);
+  const dark = shade(g.col, -0.15);
   const deep = shade(g.col, -0.3);
-  const rin = rf - 26;
-  const hub = Math.max(30, r0 * 0.3);
+  const light = shade(g.col, 0.42);
+  const rin = rf - 22; // tepi cincin luar
+  const hub = Math.max(30, r0 * 0.27);
   return (
     <g>
-      <g transform={`translate(${g.cx} ${g.cy}) rotate(${deg})`}>
-        <path d={path} fill={g.col} />
-        <circle r={rin} fill={dark} />
-        {g.spokes > 0
-          ? Array.from({length: g.spokes}, (_, i) => (
-              <rect key={i} x={-15} y={0} width={30} height={rin + 4} rx={12} fill={g.col} transform={`rotate(${(i * 360) / g.spokes + 90})`} />
-            ))
-          : [0, 1, 2].map((i) => {
-              const a = (i * TAU) / 3;
-              const rr = (rin + hub) / 2;
-              return <circle key={i} cx={rr * Math.cos(a)} cy={rr * Math.sin(a)} r={(rin - hub) * 0.32} fill={deep} />;
+      <g transform={`translate(${g.cx} ${g.cy}) rotate(${deg.toFixed(3)})`}>
+        <path d={OUT[i]} fill={g.col} />
+        {g.kind === 'spokes' ? (
+          <g>
+            <circle r={rin} fill={dark} />
+            {Array.from({length: g.count}, (_, k) => (
+              <rect key={k} x={-17} y={0} width={34} height={rin + 6} rx={14} fill={g.col} transform={`rotate(${(k * 360) / g.count})`} />
+            ))}
+            <circle r={hub + 10} fill={g.col} />
+          </g>
+        ) : g.kind === 'ring' ? (
+          <g>
+            <circle r={rin} fill={dark} />
+            <circle r={rin - 13} fill={g.col} />
+          </g>
+        ) : (
+          <g>
+            <circle r={rin} fill={dark} />
+            <circle r={rin - 14} fill={g.col} />
+            {Array.from({length: g.count}, (_, k) => {
+              const a = (k * TAU) / g.count;
+              const rr = (rin - 14 + hub) / 2 + 4;
+              return <circle key={k} cx={rr * Math.cos(a)} cy={rr * Math.sin(a)} r={(rin - 14 - hub) * 0.3} fill={dark} />;
             })}
-        <circle r={hub} fill={g.col} />
-        <circle r={hub * 0.5} fill={deep} />
-        {/* tanda kecil pada hub agar putaran terlihat */}
-        <rect x={hub * 0.5 + 6} y={-5} width={hub * 0.32} height={10} rx={5} fill={shade(g.col, 0.38)} />
+          </g>
+        )}
+        <circle r={hub} fill={dark} />
+        <circle r={hub * 0.52} fill={deep} />
       </g>
       {/* kilau tetap (cahaya dari kiri atas) */}
-      <path d={arcPath(g.cx, g.cy, rf - 13, -1.35, -0.45)} fill="none" stroke={shade(g.col, 0.42)} strokeWidth={9} strokeLinecap="round" />
-      <path d={arcPath(g.cx, g.cy, rf - 13, -0.25, -0.12)} fill="none" stroke={shade(g.col, 0.42)} strokeWidth={9} strokeLinecap="round" />
-      <circle cx={g.cx - hub * 0.42} cy={g.cy - hub * 0.42} r={Math.max(6, hub * 0.16)} fill={shade(g.col, 0.42)} />
+      <path d={arcPath(g.cx, g.cy, rf - 11, -1.42, -0.52)} fill="none" stroke={light} strokeWidth={9} strokeLinecap="round" />
+      <path d={arcPath(g.cx, g.cy, rf - 11, -0.34, -0.2)} fill="none" stroke={light} strokeWidth={9} strokeLinecap="round" />
+      <circle cx={g.cx - hub * 0.36} cy={g.cy - hub * 0.36} r={Math.max(5, hub * 0.14)} fill={light} />
     </g>
   );
 };
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
-  // 18 gigi per loop: roda A satu putaran penuh. Kecepatan sedikit bergelombang (2 siklus) agar hidup.
-  const d = TAU * (p + (0.035 / TAU) * Math.sin(TAU * 2 * p));
+  // Roda A satu putaran per loop; kecepatan sedikit bergelombang (2 siklus) agar terasa hidup.
+  const d = TAU * p + 0.05 * Math.sin(TAU * 2 * p);
   const ang = angles(d);
-  const gears = [A, B, Cg];
-  const bob = 5 * wave(p, 2);
-  const arrow = yoyo(p, 0.08, 0.22, 0.78, 0.92, inOut, inOut);
-  const sp = (k: number, ph: number) => 0.7 + 0.3 * wave01(p, k, ph);
+  const bob = 6 * wave(p, 2);
+  const arrow = yoyo(p, 0.08, 0.24, 0.76, 0.92, inOut, inOut);
+  const sp = (k: number, ph: number) => 0.65 + 0.35 * wave01(p, k, ph);
   return (
     <g>
-      <Shadow cx={960} cy={900} rx={340} ry={30} s={1 - 0.02 * wave(p, 2)} vector={vector} />
+      <Shadow cx={975} cy={905} rx={350} ry={30} s={1 - 0.02 * wave(p, 2)} vector={vector} />
       <g transform={`translate(0 ${bob.toFixed(2)})`}>
         {/* tebal (sisi bawah) */}
-        {gears.map((g, i) => (
-          <g key={`t${i}`} transform={`translate(${g.cx + 4} ${g.cy + 14}) rotate(${(ang[i] * 180) / Math.PI})`}>
+        {GEARS.map((g, i) => (
+          <g key={`t${i}`} transform={`translate(${g.cx + 3} ${g.cy + 13}) rotate(${((ang[i] * 180) / Math.PI).toFixed(3)})`}>
             <path d={OUT[i]} fill={shade(g.col, -0.32)} />
           </g>
         ))}
-        {gears.map((g, i) => (
-          <GearBody key={i} g={g} path={OUT[i]} ang={ang[i]} vector={vector} />
+        {GEARS.map((g, i) => (
+          <GearBody key={i} g={g} i={i} ang={ang[i]} />
         ))}
-        {/* panah putar di sekitar roda besar (searah putaran A = searah jarum jam) */}
+        {/* panah putar: A searah jarum jam, C searah jarum jam (B berlawanan) */}
         {arrow > 0.01 ? (
           <g>
-            <RotArrow cx={A.cx} cy={A.cy} r={rp(A) + 74} a0={3.55} a1={3.55 + 1.05 * arrow} col={C.slate} />
-            <RotArrow cx={Cg.cx} cy={Cg.cy} r={rp(Cg) + 66} a0={0.7} a1={0.7 + 1.1 * arrow} col={C.slate} />
+            <RotArrow cx={A.cx} cy={A.cy} r={rp(A) + ADD + 46} a0={3.62} a1={3.62 + 1.0 * arrow} col={C.slate} />
+            <RotArrow cx={Cg.cx} cy={Cg.cy} r={rp(Cg) + ADD + 44} a0={0.62} a1={0.62 + 1.12 * arrow} col={C.slate} />
           </g>
         ) : null}
       </g>
-      <Sparkle x={B.cx + 210} y={B.cy - 110} r={24 * sp(2, 0)} color={C.yellow} rot={15} />
-      <Sparkle x={B.cx + 268} y={B.cy - 30} r={13 * sp(2, 0.4)} color={C.sky} />
-      <Sparkle x={A.cx - 300} y={A.cy - 190} r={18 * sp(2, 0.25)} color={C.yellow} rot={10} />
-      <Sparkle x={A.cx - 250} y={A.cy - 250} r={10 * sp(2, 0.7)} color={C.teal} />
+      <Sparkle x={B.cx + 230} y={B.cy - 80} r={26 * sp(2, 0)} color={C.yellow} rot={15} />
+      <Sparkle x={B.cx + 280} y={B.cy - 2} r={13 * sp(2, 0.4)} color={C.sky} />
+      <Sparkle x={A.cx - 300} y={A.cy - 230} r={20 * sp(2, 0.25)} color={C.yellow} rot={10} />
+      <Sparkle x={A.cx - 236} y={A.cy - 292} r={11 * sp(2, 0.7)} color={C.teal} />
     </g>
   );
 };
@@ -153,19 +176,17 @@ const RotArrow: React.FC<{cx: number; cy: number; r: number; a0: number; a1: num
   const ty = Math.sin(a1) * dir;
   const nx = -ty;
   const ny = tx;
-  const L = 24;
-  const Wd = 20;
-  const head = `M${tip[0] + tx * L},${tip[1] + ty * L} L${tip[0] + nx * Wd},${tip[1] + ny * Wd} L${tip[0] - nx * Wd},${tip[1] - ny * Wd} Z`;
+  const L = 26;
+  const Wd = 21;
+  const head: [number, number][] = [
+    [tip[0] + tx * L, tip[1] + ty * L],
+    [tip[0] + nx * Wd, tip[1] + ny * Wd],
+    [tip[0] - nx * Wd, tip[1] - ny * Wd],
+  ];
   return (
     <g>
       <path d={arcPath(cx, cy, r, Math.min(a0, a1), Math.max(a0, a1))} fill="none" stroke={col} strokeWidth={12} strokeLinecap="round" />
-      <path d={roundedPath(parsePts(head), 4)} fill={col} />
+      <path d={roundedPath(head, 4)} fill={col} />
     </g>
   );
 };
-const parsePts = (d: string) =>
-  d
-    .replace(/[MLZ]/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .map((s) => s.split(',').map(Number) as [number, number]);

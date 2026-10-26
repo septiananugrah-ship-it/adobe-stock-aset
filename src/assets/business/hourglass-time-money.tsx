@@ -1,8 +1,9 @@
-// Jam pasir berpasir emas: pasir mengalir ke bawah membentuk gundukan, lalu jam pasir dibalik 180° (loop mulus, bentuk simetris titik).
+// Jam pasir berpasir emas: pasir mengalir membentuk gundukan sementara koin jatuh menumpuk di sampingnya (time is money);
+// lalu jam pasir diangkat & dibalik 180°, pasir merosot ke leher dan langsung mengalir lagi (loop mulus, bentuk simetris titik).
 import React from 'react';
-import {TAU, clamp, inOut, mix, outBack, seg, wave, wave01, yoyo} from '../../kit/loop';
+import {clamp, inOut, mix, outBack, pop, seg, wave01, yoyo} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
-import {Shadow, Sparkle, roundedPath, starPts} from '../../kit/shapes';
+import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
 
 export const meta: Meta = {
@@ -21,7 +22,7 @@ export const meta: Meta = {
   vectorP: 0.42,
 };
 
-const X = 960;
+const X = 880;
 const NY = 540; // leher
 const DM = 268; // jarak leher → tutup
 const INSET = 9; // tebal kaca
@@ -86,27 +87,32 @@ const glassPath = (() => {
   return 'M' + [...side, ...left].map((q) => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' L') + ' Z';
 })();
 
-const Coin: React.FC<{x: number; y: number; r: number; sx: number}> = ({x, y, r, sx}) => {
-  const s = Math.max(0.08, Math.abs(sx));
-  return (
-    <g transform={`translate(${x} ${y})`}>
-      <ellipse cx={(1 - s) * 9 * Math.sign(sx || 1)} rx={r * s + (1 - s) * 5} ry={r} fill={shade(C.yellow, -0.28)} />
-      <g transform={`scale(${s} 1)`}>
-        <circle r={r} fill={C.yellow} />
-        <circle r={r * 0.74} fill={shade(C.yellow, -0.12)} />
-        <path d={roundedPath(starPts(0, 2, r * 0.46, r * 0.2, 5), 3)} fill={shade(C.yellow, 0.35)} />
-      </g>
-    </g>
-  );
-};
+/** Koin tampak samping (tumpukan). */
+const FlatCoin: React.FC<{x: number; y: number; s?: number}> = ({x, y, s = 1}) => (
+  <g transform={`translate(${x} ${y}) scale(${s.toFixed(4)}) translate(${-x} ${-y})`}>
+    <rect x={x - 62} y={y - 9} width={124} height={22} fill={shade(C.yellow, -0.22)} />
+    <ellipse cx={x} cy={y + 13} rx={62} ry={19} fill={shade(C.yellow, -0.22)} />
+    <ellipse cx={x} cy={y - 9} rx={62} ry={19} fill={C.yellow} />
+    <ellipse cx={x} cy={y - 9} rx={44} ry={12} fill={shade(C.yellow, -0.12)} />
+    <rect x={x - 46} y={y + 4} width={11} height={20} rx={5.5} fill={shade(C.yellow, 0.25)} />
+  </g>
+);
+
+const SX = X + 330; // tumpukan koin
+const FLOOR = 856; // dasar tutup bawah
+const COIN_T = 30;
+const stackY = (k: number) => FLOOR - 32 - k * COIN_T;
+const DROPS = [0.1, 0.31, 0.52]; // koin muncul di atas tumpukan
+const FLOW1 = 0.7; // pasir habis
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
-  const flowT = seg(p, 0.06, 0.74, (t) => 0.8 * t + 0.2 * inOut(t));
-  const flowing = p > 0.06 && p < 0.745;
-  const flip = seg(p, 0.8, 0.94, (t) => outBack(t, 1.3));
-  const morph = seg(p, 0.828, 0.885, (t) => t * t);
-  const lift = -34 * yoyo(p, 0.78, 0.84, 0.88, 0.95, inOut, inOut);
-  const settle = seg(p, 0.72, 0.8, inOut);
+  // pasir mengalir 0 → FLOW1, gundukan merata, lalu diangkat & dibalik (sedikit lewat lalu kembali)
+  const flowT = seg(p, 0, FLOW1, (t) => 0.85 * t + 0.15 * inOut(t));
+  const settle = seg(p, FLOW1 + 0.01, 0.77, inOut);
+  const lift = -38 * yoyo(p, 0.77, 0.83, 0.925, 0.99, inOut, inOut);
+  const u = seg(p, 0.905, 0.975);
+  const rot = 180 * seg(p, 0.805, 0.925, inOut) + 9 * Math.sin(Math.PI * u) * (1 - u);
+  const morph = seg(p, 0.872, 0.985, (t) => t * t); // pasir merosot (dipercepat gravitasi) ke leher setelah terbalik
   const top = SAND * (1 - flowT);
   const bot = SAND * flowT;
   const SAND_C = C.yellow;
@@ -119,20 +125,33 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const bd0 = mix(DM - Lb, 0, morph);
   const bd1 = mix(DM, L0, morph);
   const peak = 30 * clamp(bot / (0.08 * SAND)) * (1 - settle);
-  const dip = 14 * clamp(top / (0.1 * SAND)) * (flowing ? 1 : 0) * clamp(flowT * 30);
-  // aliran
-  const streamTop = NY - 4;
-  const streamBot = NY + (DM - Lb) - peak + 4;
-  const streamK = seg(p, 0.06, 0.09) * (1 - seg(p, 0.72, 0.745));
+  const dip = 14 * clamp(top / (0.1 * SAND)) * (1 - seg(p, FLOW1 - 0.03, FLOW1 + 0.01));
+  // aliran: kepala jatuh dari leher di awal, ekor jatuh di akhir
+  const yBot = NY + (DM - Lb) - peak + 4;
+  const head = seg(p, 0, 0.028, (t) => t * t);
+  const tail = seg(p, FLOW1 - 0.012, FLOW1 + 0.016, (t) => t * t);
+  const sTop = mix(NY - 4, yBot, tail);
+  const sBot = mix(NY - 4, yBot, head);
+  const streamOn = p < FLOW1 + 0.016 && sBot - sTop > 3;
   const glass = blend(C.sky, C.white, 0.62);
   const wood = C.brown;
   return (
     <g>
-      <Shadow cx={X} cy={890} rx={230} ry={24} s={1 + lift / 300} vector={vector} />
-      {/* koin melayang di kiri-kanan */}
-      <Coin x={X - 330} y={430 + 16 * wave(p, 2)} r={46} sx={Math.cos(TAU * p)} />
-      <Coin x={X + 330} y={640 + 16 * wave(p, 2, 0.5)} r={38} sx={Math.cos(TAU * (p + 0.5))} />
-      <g transform={`translate(0 ${lift.toFixed(2)}) rotate(${(180 * flip).toFixed(3)} ${X} ${NY})`}>
+      <Shadow cx={X} cy={FLOOR + 30} rx={230} ry={24} s={1 + lift / 300} vector={vector} />
+      <Shadow cx={SX} cy={FLOOR + 30} rx={110} ry={18} vector={vector} />
+      {/* tumpukan koin: 1 koin dasar + 3 koin jatuh selama pasir mengalir, hilang bertingkat saat dibalik */}
+      <FlatCoin x={SX} y={stackY(0)} />
+      {DROPS.map((t0, i) => {
+        const appear = seg(p, t0, t0 + 0.035, (t) => outBack(t, 2));
+        const fall = seg(p, t0 + 0.045, t0 + 0.105, (t) => t * t);
+        const land = t0 + 0.105;
+        const gone = seg(p, 0.8 + (2 - i) * 0.035, 0.86 + (2 - i) * 0.035, inOut);
+        const s = appear * (1 - gone) * (p >= land ? pop(p, land, 0.07, 0.1) : 1);
+        if (s < 0.01) return null;
+        const y = mix(stackY(i + 1) - 300, stackY(i + 1), fall);
+        return <FlatCoin key={i} x={SX} y={y} s={s} />;
+      })}
+      <g transform={`translate(0 ${lift.toFixed(2)}) rotate(${rot.toFixed(3)} ${X} ${NY})`}>
         {/* tiang (bayangan di sisi luar → simetris titik) */}
         {[-1, 1].map((s) => (
           <g key={s}>
@@ -148,13 +167,14 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         {/* pasir bawah */}
         {bd1 - bd0 > 1 ? <path d={sandPath(1, bd0, bd1, morph > 0 ? peak * (1 - morph) : peak, 0)} fill={SAND_C} /> : null}
         {/* aliran pasir */}
-        {streamK > 0.01 && streamBot > streamTop + 4 ? (
+        {streamOn ? (
           <g>
-            <rect x={X - 4.5 * streamK} y={streamTop} width={9 * streamK} height={streamBot - streamTop} rx={4} fill={SAND_C} />
+            <rect x={X - 4.5} y={sTop} width={9} height={sBot - sTop} rx={4.5} fill={SAND_C} />
             {Array.from({length: 6}, (_, i) => {
-              const u = (p * 24 + i / 6) % 1;
-              const y = streamTop + (streamBot - streamTop) * u;
-              const r = 6 * streamK * Math.sin(Math.PI * u);
+              const v = (p * 24 + i / 6) % 1;
+              const y = mix(NY - 4, yBot, v);
+              if (y < sTop || y > sBot) return null;
+              const r = 6 * Math.sin(Math.PI * v);
               return r > 1 ? <circle key={i} cx={X + (i % 2 ? 3 : -3)} cy={y} r={r} fill={SAND_D} /> : null;
             })}
           </g>
@@ -176,9 +196,14 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           );
         })}
       </g>
-      <Sparkle x={X + 260} y={300} r={22 * (0.7 + 0.3 * wave01(p, 3))} color={C.yellow} rot={15} />
-      <Sparkle x={X - 280} y={720} r={14 * (0.6 + 0.4 * wave01(p, 3, 0.4))} color={C.yellow} />
-      <Sparkle x={X + 230} y={800} r={12 * (0.6 + 0.4 * wave01(p, 2, 0.2))} color={C.sky} />
+      {/* kilau di atas tumpukan tiap koin mendarat */}
+      {DROPS.map((t0, i) => {
+        const k = yoyo(p, t0 + 0.105, t0 + 0.13, t0 + 0.15, t0 + 0.2, (t) => outBack(t, 2));
+        return k > 0.01 ? <Sparkle key={`k${i}`} x={SX + 92} y={stackY(i + 1) - 44} r={20 * k} color={C.yellow} rot={15} /> : null;
+      })}
+      <Sparkle x={X - 290} y={330} r={22 * (0.7 + 0.3 * wave01(p, 3))} color={C.yellow} rot={15} />
+      <Sparkle x={X - 250} y={250} r={11 * (0.6 + 0.4 * wave01(p, 3, 0.4))} color={C.sky} />
+      <Sparkle x={X - 300} y={730} r={14 * (0.6 + 0.4 * wave01(p, 2, 0.2))} color={C.yellow} />
     </g>
   );
 };
