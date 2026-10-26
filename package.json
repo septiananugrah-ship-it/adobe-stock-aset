@@ -1,0 +1,33 @@
+{
+  "name": "adobe-stock-aset",
+  "version": "1.0.0",
+  "description": "Aset motion graphics loop mulus ber-alpha (ProRes 4444, 4K) + ilustrasi vektor untuk microstock, dibuat dengan Remotion",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "remotion studio",
+    "lint": "tsc --noEmit",
+    "registry": "python3 scripts/gen-registry.py",
+    "qa": "node scripts/qa.mjs",
+    "vectors": "tsx scripts/export-vectors.tsx",
+    "metadata": "tsx scripts/metadata.ts"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.536",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.536"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "4.0.536",
+    "@remotion/renderer": "4.0.536",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

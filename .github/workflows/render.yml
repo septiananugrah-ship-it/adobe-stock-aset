@@ -1,0 +1,95 @@
+name: Render aset Adobe Stock (alpha 4K + vektor)
+on:
+  workflow_dispatch:
+    inputs:
+      tema:
+        description: 'Tema yang dirender'
+        type: choice
+        options: ['semua', 'ui', 'science', 'business', 'nature']
+        default: 'semua'
+      format:
+        description: 'prores = ProRes 4444 + alpha (standar editor); png = QuickTime PNG + alpha (lossless, berkas lebih kecil)'
+        type: choice
+        options: ['prores', 'png']
+        default: 'prores'
+      ids:
+        description: 'Opsional: hanya id tertentu (pisahkan spasi, boleh awalan). Kosong = semua di tema.'
+        required: false
+        default: ''
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        tema: [ui, science, business, nature]
+    steps:
+      - name: Lewati tema yang tidak dipilih
+        id: pilih
+        run: |
+          if [ "${{ inputs.tema }}" = "semua" ] || [ "${{ inputs.tema }}" = "${{ matrix.tema }}" ]; then echo "jalan=1" >> "$GITHUB_OUTPUT"; else echo "jalan=0" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/checkout@v4
+        if: steps.pilih.outputs.jalan == '1'
+      - uses: actions/setup-node@v4
+        if: steps.pilih.outputs.jalan == '1'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Pasang ffmpeg & cairosvg
+        if: steps.pilih.outputs.jalan == '1'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg libcairo2 && python3 -m pip install cairosvg==2.9.1 cairocffi Pillow numpy
+      - if: steps.pilih.outputs.jalan == '1'
+        run: npm ci && npx remotion browser ensure && npx tsx scripts/themes.ts
+      - name: Render klip 4K ber-alpha
+        if: steps.pilih.outputs.jalan == '1'
+        env:
+          IDS: ${{ inputs.ids }}
+          RENDER_CONCURRENCY: 4
+        run: |
+          if [ -n "$IDS" ]; then FILTER=$(for i in $IDS; do case "$i" in ${{ matrix.tema }}-*) echo "$i";; esac; done); else FILTER="${{ matrix.tema }}-"; fi
+          if [ -z "$FILTER" ]; then echo "Tidak ada id untuk tema ini."; exit 0; fi
+          node scripts/render-assets.mjs --format ${{ inputs.format }} $FILTER
+      - name: Vektor + CSV metadata
+        if: steps.pilih.outputs.jalan == '1'
+        run: |
+          npx tsx scripts/export-vectors.tsx ${{ matrix.tema }}-
+          python3 scripts/vectors.py
+          npx tsx scripts/metadata.ts
+          ls -R out/render out/vectors | head -100
+      - name: Kemas
+        if: steps.pilih.outputs.jalan == '1'
+        run: |
+          mkdir -p dist
+          if [ -d out/render/${{ matrix.tema }} ]; then
+            mkdir -p dist/klip dist/pratinjau
+            mv out/render/${{ matrix.tema }}/*-preview.mp4 dist/pratinjau/ 2>/dev/null || true
+            cp out/render/${{ matrix.tema }}/* dist/klip/ 2>/dev/null || true
+          fi
+          [ -d out/vectors/${{ matrix.tema }} ] && cp -r out/vectors/${{ matrix.tema }} dist/vektor || true
+          du -sh dist/* || true
+      - uses: actions/upload-artifact@v4
+        if: steps.pilih.outputs.jalan == '1'
+        with:
+          name: adobe-${{ matrix.tema }}-klip-${{ inputs.format }}
+          path: dist/klip
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: steps.pilih.outputs.jalan == '1'
+        with:
+          name: adobe-${{ matrix.tema }}-vektor
+          path: dist/vektor
+          if-no-files-found: ignore
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: steps.pilih.outputs.jalan == '1'
+        with:
+          name: pratinjau-${{ matrix.tema }}
+          path: dist/pratinjau
+          compression-level: 0
+          if-no-files-found: ignore
+          retention-days: 14
