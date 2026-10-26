@@ -42,6 +42,7 @@ const METAL = C.mist;
 const METAL_D = shade(C.mist, -0.2);
 const LINE = blend(C.sky, C.blue, 0.25);
 const DOT = blend(C.sky, C.white, 0.35);
+const FIT = 0.88; // skala keseluruhan agar tinggi isi ≈ 70 % kanvas
 
 /** Medan 2D di titik (x, y): sumber di N, tujuan di S. */
 const field = (x: number, y: number) => {
@@ -80,7 +81,9 @@ for (let tries = 0; FILINGS.length < 150 && tries < 4000; tries++) {
   if (e > 1) continue;
   if (Math.abs(x - CX) < RO + 22 && y < POLE_Y + 30) continue;
   if (Math.hypot(x - PN.x, y - PN.y) < 100 || Math.hypot(x - PS.x, y - PS.y) < 100) continue;
-  if (FILINGS.some((f) => Math.hypot(f.x - x, f.y - y) < 40)) continue;
+  if (FILINGS.some((f) => Math.hypot(f.x - x, f.y - y) < 42)) continue;
+  // jangan menumpuk garis medan yang digambar (busur bagian bawah)
+  if (y > SRC_Y - 10 && KS.some((k) => Math.abs(Math.hypot(x - CX, y - (SRC_Y + k)) - Math.hypot(LEG, k)) < 21)) continue;
   const [fx, fy] = field(x, y);
   const target = Math.atan2(fy, fx);
   const a0 = R() * Math.PI;
@@ -115,9 +118,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   // magnet berayun napas halus
   const bob = 4 * wave(p, 2);
   return (
-    <g>
-      <Glow cx={PN.x} cy={PN.y} r={150 + 20 * wave01(p, 4)} color={RED} strength={0.7 * on} vector={vector} />
-      <Glow cx={PS.x} cy={PS.y} r={150 + 20 * wave01(p, 4, 0.5)} color={C.sky} strength={0.7 * on} vector={vector} />
+    <g transform={`translate(${CX} 540) scale(${FIT}) translate(${-CX} -514)`}>
+      <Glow cx={PN.x} cy={POLE_Y - 18} r={112 + 12 * wave01(p, 4)} color={blend(RED, C.white, 0.25)} strength={0.6 * on} vector={vector} />
+      <Glow cx={PS.x} cy={POLE_Y - 18} r={112 + 12 * wave01(p, 4, 0.5)} color={C.sky} strength={0.6 * on} vector={vector} />
       {/* serbuk besi */}
       {FILINGS.map((f, i) => {
         const delay = clamp((f.d - 70) / 420) * 0.12;
@@ -129,10 +132,10 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           <rect
             key={i}
             x={-f.L / 2}
-            y={-5}
+            y={-6}
             width={f.L}
-            height={10}
-            rx={5}
+            height={12}
+            rx={6}
             fill={col}
             transform={`translate(${f.x.toFixed(1)} ${f.y.toFixed(1)}) rotate(${a.toFixed(2)})`}
           />
@@ -144,13 +147,13 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         if (dk <= 0.002) return null;
         return (
           <g key={i}>
-            <path d={a.d} fill="none" stroke={LINE} strokeWidth={8} strokeLinecap="round" pathLength={1000} strokeDasharray={`${(dk * 1000).toFixed(1)} 2000`} />
+            <path d={a.d} fill="none" stroke={LINE} strokeWidth={10} strokeLinecap="round" pathLength={1000} strokeDasharray={`${(dk * 1000).toFixed(1)} 2000`} />
             {!vector ? (
               <path
                 d={a.d}
                 fill="none"
                 stroke={DOT}
-                strokeWidth={12}
+                strokeWidth={14}
                 strokeLinecap="round"
                 strokeDasharray={`0.1 ${(a.len / Math.max(3, Math.round(a.len / 70))).toFixed(3)}`}
                 strokeDashoffset={-((a.len / Math.max(3, Math.round(a.len / 70))) * 4 * p)}
