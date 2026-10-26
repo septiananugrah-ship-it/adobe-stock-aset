@@ -31,8 +31,9 @@ const RO = LEG + TH / 2;
 const RI = LEG - TH / 2;
 const POLE_Y = 610; // ujung kutub
 const TIP = 86; // panjang ujung logam
-const PN = {x: CX - LEG, y: POLE_Y};
-const PS = {x: CX + LEG, y: POLE_Y};
+const SRC_Y = POLE_Y - 46; // kutub titik model tersembunyi di dalam ujung logam
+const PN = {x: CX - LEG, y: SRC_Y};
+const PS = {x: CX + LEG, y: SRC_Y};
 
 const RED = C.coral;
 const RED_D = shade(RED, -0.2);
@@ -53,8 +54,8 @@ const field = (x: number, y: number) => {
   return [ax / a2 - bx / b2, ay / a2 - by / b2];
 };
 
-// Busur garis medan: pusat lingkaran di (CX, POLE_Y + k), melewati N & S, bagian bawah.
-const KS = [-520, -230, -95, 0, 78, 150];
+// Busur garis medan: pusat lingkaran di (CX, SRC_Y + k), melewati N & S, bagian bawah.
+const KS = [-700, -260, -110, -10, 70, 140];
 const arcD = (k: number) => {
   const r = Math.hypot(LEG, k);
   const large = k > 0 ? 1 : 0;
@@ -77,8 +78,8 @@ for (let tries = 0; FILINGS.length < 150 && tries < 4000; tries++) {
   const y = 470 + R() * 470;
   const e = Math.pow((x - CX) / 540, 2) + Math.pow((y - 700) / 250, 2);
   if (e > 1) continue;
-  if (Math.abs(x - CX) < RO + 22 && y < POLE_Y + 26) continue;
-  if (Math.hypot(x - PN.x, y - PN.y) < 70 || Math.hypot(x - PS.x, y - PS.y) < 70) continue;
+  if (Math.abs(x - CX) < RO + 22 && y < POLE_Y + 30) continue;
+  if (Math.hypot(x - PN.x, y - PN.y) < 100 || Math.hypot(x - PS.x, y - PS.y) < 100) continue;
   if (FILINGS.some((f) => Math.hypot(f.x - x, f.y - y) < 40)) continue;
   const [fx, fy] = field(x, y);
   const target = Math.atan2(fy, fx);
@@ -90,6 +91,13 @@ for (let tries = 0; FILINGS.length < 150 && tries < 4000; tries++) {
   const d = Math.min(Math.hypot(x - PN.x, y - PN.y), Math.hypot(x - PS.x, y - PS.y));
   FILINGS.push({x, y, a0, a1, d, c: R(), L: 20 + R() * 10});
 }
+
+/** Badan U (tanpa ujung logam), digeser dx. */
+const uPath = (dx: number) => {
+  const yb = POLE_Y - TIP + 8;
+  const x = CX + dx;
+  return `M${x - RO},${yb} L${x - RO},${UY} A${RO},${RO} 0 0 1 ${x + RO},${UY} L${x + RO},${yb} L${x + RI},${yb} L${x + RI},${UY} A${RI},${RI} 0 0 0 ${x - RI},${UY} L${x - RI},${yb} Z`;
+};
 
 const Tip: React.FC<{x: number}> = ({x}) => (
   <g>
@@ -154,17 +162,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       })}
       {/* magnet */}
       <g transform={`translate(0 ${bob.toFixed(2)}) translate(${CX} ${POLE_Y}) scale(${kick}) translate(${-CX} ${-POLE_Y})`}>
-        {/* sisi gelap (tebal) */}
-        <path
-          d={`M${CX - RO + 12},${POLE_Y} L${CX - RO + 12},${UY} A${RO},${RO} 0 0 1 ${CX + RO + 12},${UY} L${CX + RO + 12},${POLE_Y} Z`}
-          fill={RED_D}
-        />
-        <path
-          d={`M${CX - RO},${POLE_Y - TIP + 8} L${CX - RO},${UY} A${RO},${RO} 0 0 1 ${CX + RO},${UY} L${CX + RO},${POLE_Y - TIP + 8} L${CX + RI},${POLE_Y - TIP + 8} L${CX + RI},${UY} A${RI},${RI} 0 0 0 ${CX - RI},${UY} L${CX - RI},${POLE_Y - TIP + 8} Z`}
-          fill={RED}
-        />
-        {/* bayangan dalam busur */}
-        <path d={`M${CX + RI},${UY} A${RI},${RI} 0 0 0 ${CX - RI},${UY} L${CX - RI + 20},${UY} A${RI - 20},${RI - 20} 0 0 1 ${CX + RI - 20},${UY} Z`} fill={RED_D} />
+        {/* sisi gelap (tebal) lalu badan */}
+        <path d={uPath(12)} fill={RED_D} />
+        <path d={uPath(0)} fill={RED} />
         {/* kilau */}
         <path
           d={`M${CX - RO + 24},${POLE_Y - TIP - 20} L${CX - RO + 24},${UY} A${RO - 24},${RO - 24} 0 0 1 ${CX - 40},${UY - RO + 26}`}
