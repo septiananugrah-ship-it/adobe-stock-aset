@@ -143,7 +143,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   return (
     <g>
       <Shadow cx={CX} cy={BODY.y + BODY.h + 42} rx={360} ry={26} vector={vector} />
-      <Glow cx={CX - 150} cy={BODY.y - 20} r={420} color={C.yellow} strength={flashK * 2.2} vector={vector} />
+      <Glow cx={723} cy={BODY.y - 20} r={420} color={C.yellow} strength={flashK * 2.2} vector={vector} />
       {/* foto keluar dari celah atas (di belakang badan) */}
       <g transform={`rotate(${sway.toFixed(3)} ${CX} ${BODY.y})`}>
         <rect x={px} y={photoTop + 10} width={PHOTO.w} height={PHOTO.h} rx={18} fill={shade(C.mist, -0.2)} />
@@ -161,9 +161,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         <rect x={1120} y={BODY.y - 46 + 18 * press} width={100} height={70} rx={20} fill={shade(C.coral, -0.12)} />
         <rect x={1120} y={BODY.y - 46 + 18 * press} width={100} height={34} rx={17} fill={C.coral} />
         {/* punuk blitz */}
-        <rect x={690} y={BODY.y - 70} width={210} height={110} rx={28} fill={C.ink} />
-        <rect x={714} y={BODY.y - 50} width={162} height={56} rx={16} fill={blend(C.cloud, C.yellow, Math.min(1, flashK * 1.5))} />
-        <rect x={730} y={BODY.y - 40} width={40} height={12} rx={6} fill={C.white} />
+        <rect x={650} y={BODY.y - 70} width={146} height={110} rx={28} fill={C.ink} />
+        <rect x={670} y={BODY.y - 50} width={106} height={56} rx={16} fill={blend(C.cloud, C.yellow, Math.min(1, flashK * 1.5))} />
+        <rect x={684} y={BODY.y - 40} width={34} height={12} rx={6} fill={C.white} />
         {/* badan */}
         <rect x={BODY.x} y={BODY.y + 18} width={BODY.w} height={BODY.h} rx={BODY.r} fill={shade(COL, -0.28)} />
         <rect x={BODY.x} y={BODY.y} width={BODY.w} height={BODY.h} rx={BODY.r} fill={COL} />
@@ -200,7 +200,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
             const ang = -Math.PI / 2 + (i - 3) * 0.32;
             const r0 = 110 + 90 * out(clamp(flash * 1.3));
             const len = 70 * flashK + 6;
-            const cx = 795;
+            const cx = 723;
             const cy = BODY.y - 40;
             return (
               <line
@@ -219,7 +219,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         : null}
       <Sparkle x={1250} y={170} r={26 * done * tw(4, 0)} color={C.yellow} rot={15} />
       <Sparkle x={1330} y={300} r={16 * done * tw(4, 0.5)} color={C.sky} />
-      <Sparkle x={600} y={260} r={20 * done * tw(3, 0.2)} color={C.orange} rot={30} />
+      <Sparkle x={560} y={200} r={20 * done * tw(3, 0.2)} color={C.orange} rot={30} />
     </g>
   );
 };
