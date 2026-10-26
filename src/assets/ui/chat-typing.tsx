@@ -32,6 +32,9 @@ export const meta: Meta = {
     'sms',
     'app',
     'icon',
+    'animated icon',
+    'ui animation',
+    'chat icon',
     'ui',
     'user interface',
     'web',
@@ -147,7 +150,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
             <rect x={x} y={y + 10} width={w} height={h} rx={Math.min(42, h / 2)} fill={shade(b.col, -0.22)} />
             <path d={tail} fill={b.col} />
             <rect x={x} y={y} width={w} height={h} rx={Math.min(42, h / 2)} fill={b.col} />
-            <rect x={x + 26} y={y + 12} width={30 + (w * 0.22 - 30) * m} height={9} rx={4.5} fill={shade(b.col, 0.4)} />
+            <rect x={x + 32} y={y + 15} width={30 + (w * 0.22 - 30) * m} height={9} rx={4.5} fill={shade(b.col, 0.4)} />
             {dotsO > 0.01 ? (
               <g transform={`translate(${x + w / 2} ${y + h / 2 + 4})`} opacity={dotsO >= 1 ? undefined : dotsO}>
                 <Dots p={p} col={shade(b.col, 0.62)} still={vector} />

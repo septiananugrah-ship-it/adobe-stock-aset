@@ -79,6 +79,7 @@ const BOLT_D = roundedPath(BOLT, 9);
 const BOLT_LOW = roundedPath([[22, -34], [80, -34], [-46, 148], [-8, 24], [-34, 24], [4, -34]], 6);
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
+  const tw = (k: number, ph: number) => (vector ? 1 : 0.8 + 0.2 * wave(p, k, ph));
   // isi tiap sel 0..1 (sel 0 selalu ada sebagai "baterai lemah")
   const drain = vector ? 0 : seg(p, 0.84, 0.94, inOut);
   const fill = CELL_T.map((t, i) => (i === 0 ? 1 : vector ? 1 : seg(p, t, t + CELL_D, (u) => outBack(u, 1.6)) * (1 - drain)));
@@ -91,7 +92,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const land = vector ? 1 : 1 + 0.06 * Math.sin(Math.PI * seg(p, FULL, FULL + 0.07)) * (1 - seg(p, FULL, FULL + 0.07));
   const breath = vector ? 1 : 1 + 0.012 * wave(p, 2);
   const boltPulse = vector ? 1 : 1 + 0.05 * wave01(p, 8) * (1 - full) * charging + 0.03 * full * wave(p, 4);
-  const bt = vector ? 0.45 : (p - FULL) / 0.16;
+  const bt = vector ? -1 : (p - FULL) / 0.16;
   const sc = land * breath;
   return (
     <g>
@@ -159,7 +160,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           const y = WELL.y + GAP;
           const blink = i === 0 ? 1 - 0.55 * lowBlink * wave01(p, 6) : 1;
           const ci = i === 0 && level < 0.02 ? C.coral : col;
-          const sh = 1 + 0.03 * full * wave(p, 4, -i * 0.12);
+          const sh = vector ? 1 : 1 + 0.03 * full * wave(p, 4, -i * 0.12);
           return (
             <g key={i} opacity={blink >= 1 ? undefined : blink} transform={`translate(${x} ${y + CH}) scale(1 ${sh.toFixed(4)}) translate(${-x} ${-(y + CH)})`}>
               <rect x={x} y={y} width={w} height={CH} rx={Math.min(18, w / 2)} fill={ci} />
@@ -184,17 +185,17 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         ) : null}
         {/* petir */}
         {charging > 0.01 ? (
-          <g transform={`translate(${CX - 10} ${CY}) scale(${(1.3 * charging * boltPulse).toFixed(4)}) rotate(${(vector ? 0 : 8 * (1 - clamp(charging))).toFixed(2)})`}>
+          <g transform={`translate(${CX - 10} ${CY}) scale(${(1.06 * charging * boltPulse).toFixed(4)}) rotate(${(vector ? 0 : 8 * (1 - clamp(charging))).toFixed(2)})`}>
             <path d={BOLT_D} fill={shade(C.navy, -0.15)} transform="translate(10 12)" />
             <path d={BOLT_D} fill={C.white} />
             <path d={BOLT_LOW} fill={shade(C.cloud, -0.04)} />
           </g>
         ) : null}
       </g>
-      <Sparkle x={1360} y={268} r={26 * full * (0.8 + 0.2 * wave(p, 4))} color={C.yellow} rot={15} />
-      <Sparkle x={556} y={300} r={18 * full * (0.8 + 0.2 * wave(p, 4, 0.5))} color={C.green} />
-      <Sparkle x={1380} y={760} r={15 * full * (0.75 + 0.25 * wave(p, 3, 0.2))} color={C.sky} rot={30} />
-      <Sparkle x={540} y={740} r={13 * full * (0.75 + 0.25 * wave(p, 3, 0.7))} color={C.yellow} rot={30} />
+      <Sparkle x={1360} y={268} r={26 * full * tw(4, 0)} color={C.yellow} rot={15} />
+      <Sparkle x={556} y={300} r={18 * full * tw(4, 0.5)} color={C.green} />
+      <Sparkle x={1380} y={760} r={16 * full * tw(3, 0.2)} color={C.sky} rot={30} />
+      <Sparkle x={540} y={740} r={14 * full * tw(3, 0.7)} color={C.yellow} rot={30} />
     </g>
   );
 };

@@ -30,6 +30,9 @@ export const meta: Meta = {
     'verified',
     'checkmark',
     'icon',
+    'animated icon',
+    'ui animation',
+    'lock icon',
     'ui',
     'user interface',
     'app',
@@ -62,9 +65,11 @@ const LEG_L = 846;
 const LEG_R = 1074;
 const ARC_Y = 404;
 const SH_R = (LEG_R - LEG_L) / 2;
-const SHACKLE = `M${LEG_L},${B.y + 40} L${LEG_L},${ARC_Y} A${SH_R},${SH_R} 0 0 1 ${LEG_R},${ARC_Y} L${LEG_R},${B.y + 40}`;
+// kaki kiri panjang (tetap tertanam di badan saat terbuka), kaki kanan pendek (keluar dari lubang)
+const SHACKLE = `M${LEG_L},${B.y + 150} L${LEG_L},${ARC_Y} A${SH_R},${SH_R} 0 0 1 ${LEG_R},${ARC_Y} L${LEG_R},${B.y + 40}`;
 const HL = `M${LEG_L - 12},${B.y - 30} L${LEG_L - 12},${ARC_Y} A${SH_R + 12},${SH_R + 12} 0 0 1 ${CX - 30},${ARC_Y - SH_R - 4}`;
 const KEY_Y = 616;
+const BEVEL = 16;
 const SLAM = 0.68;
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
@@ -115,10 +120,12 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         {/* badan */}
         <rect x={B.x} y={B.y + 20} width={B.w} height={B.h} rx={B.r} fill={shade(C.purple, -0.28)} />
         <rect x={B.x} y={B.y} width={B.w} height={B.h} rx={B.r} fill={C.purple} />
-        <rect x={B.x + B.w - 92} y={B.y} width={92} height={B.h} rx={B.r} fill={shade(C.purple, -0.12)} />
-        <rect x={B.x + B.w - 92} y={B.y} width={44} height={B.h} fill={shade(C.purple, -0.12)} />
-        <rect x={B.x + B.w - 92} y={B.y} width={20} height={B.h} fill={C.purple} />
-        <rect x={B.x} y={B.y} width={B.w} height={34} rx={17} fill={shade(C.purple, 0.16)} />
+        {/* bevel terang di tepi atas (mengikuti sudut membulat), lalu muka badan */}
+        <rect x={B.x} y={B.y} width={B.w} height={B.h} rx={B.r} fill={shade(C.purple, 0.2)} />
+        <rect x={B.x} y={B.y + BEVEL} width={B.w} height={B.h - BEVEL} rx={B.r} fill={C.purple} />
+        {/* sisi kanan lebih gelap */}
+        <rect x={B.x + B.w - 76} y={B.y + BEVEL} width={76} height={B.h - BEVEL} rx={B.r} fill={shade(C.purple, -0.12)} />
+        <rect x={B.x + B.w - 76} y={B.y + BEVEL} width={40} height={B.h - BEVEL} fill={shade(C.purple, -0.12)} />
         <rect x={B.x + 18} y={B.y + 68} width={16} height={120} rx={8} fill={shade(C.purple, 0.4)} />
         <circle cx={B.x + 26} cy={B.y + 216} r={8} fill={shade(C.purple, 0.4)} />
         {/* lubang kunci */}
@@ -187,7 +194,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       ) : null}
       <Sparkle x={1300} y={300} r={26 * sparkle * (0.8 + 0.2 * wave(p, 4))} color={C.yellow} rot={15} />
       <Sparkle x={624} y={360} r={18 * sparkle * (0.8 + 0.2 * wave(p, 4, 0.5))} color={C.violet} />
-      <Sparkle x={640} y={720} r={13 * sparkle * (0.75 + 0.25 * wave(p, 3, 0.2))} color={C.green} rot={30} />
+      <Sparkle x={640} y={720} r={14 * (vector ? 1 : sparkle * (0.75 + 0.25 * wave(p, 3, 0.2)))} color={C.green} rot={30} />
     </g>
   );
 };

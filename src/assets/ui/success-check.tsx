@@ -21,6 +21,9 @@ export const meta: Meta = {
     'verified',
     'correct',
     'icon',
+    'animated icon',
+    'ui animation',
+    'success icon',
     'ui',
     'user interface',
     'app',
@@ -70,28 +73,31 @@ const L2 = Math.hypot(CHECK[2][0] - CHECK[1][0], CHECK[2][1] - CHECK[1][1]);
 const CHECK_D = `M${CHECK[0][0]},${CHECK[0][1]} L${CHECK[1][0]},${CHECK[1][1]} L${CHECK[2][0]},${CHECK[2][1]}`;
 const BURST_AT = 0.36;
 
-// konfeti: sudut, jarak, warna, bentuk (deterministik)
+// konfeti: tersebar merata di atas & samping (sektor bawah dikosongkan agar tidak menimpa bayangan lantai)
 const CONF = (() => {
   const r = rng(11);
-  const cols = [C.teal, C.yellow, C.green, C.sky, C.yellow, C.teal];
-  return Array.from({length: 14}, (_, i) => ({
-    a: (i / 14) * TAU + (r() - 0.5) * 0.3 + 0.2,
-    d: 330 + r() * 90,
-    s: 11 + r() * 6,
+  const cols = [C.teal, C.yellow, C.green, C.sky, C.yellow, C.teal, C.green];
+  const n = 16;
+  return Array.from({length: n}, (_, i) => ({
+    a: ((-132 + (i * 264) / (n - 1) + (r() - 0.5) * 8) * Math.PI) / 180,
+    d: (i % 2 ? 392 : 340) + r() * 26,
+    s: 11 + r() * 5,
     col: cols[i % cols.length],
     kind: i % 3,
     spin: (r() - 0.5) * 540,
     delay: r() * 0.03,
   }));
 })();
+/** Masuk dengan antisipasi (kebalikan outBack): untuk mengecil cepat saat keluar. */
+const inBack = (t: number, s = 1.70158) => t * t * ((s + 1) * t - s);
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const ringIn = seg(p, 0.05, 0.24, inOut);
   const ringOut = seg(p, 0.84, 0.95, inOut);
-  const disk = yoyo(p, 0.17, 0.3, 0.82, 0.92, (t) => outBack(t, 1.3), inOut);
-  const check = seg(p, 0.28, 0.4, inOut); // keluar bersama cakram yang mengecil
+  const disk = yoyo(p, 0.17, 0.3, 0.82, 0.9, (t) => outBack(t, 1.3), (t) => inBack(t, 1.4));
+  const check = seg(p, 0.29, 0.37, inOut); // keluar bersama cakram yang mengecil
   const hold = yoyo(p, 0.36, 0.44, 0.76, 0.84, inOut, inOut);
-  const land = vector ? 1 : 1 + 0.06 * Math.sin(Math.PI * seg(p, 0.39, 0.47)) * (1 - seg(p, 0.39, 0.47));
+  const land = vector ? 1 : 1 + 0.06 * Math.sin(Math.PI * seg(p, 0.36, 0.44)) * (1 - seg(p, 0.36, 0.44));
   const breath = vector ? 1 : 1 + 0.018 * hold * wave(p, 3);
   const bt = vector ? 0.42 : (p - BURST_AT) / 0.16; // 0..1 ledakan
   const showBurst = bt > 0 && bt < 1;
@@ -101,7 +107,6 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const a1 = TAU * ringIn;
   const ringFull = ringIn >= 0.9995 && ringOut <= 0.0005;
   const ringVisible = a1 - a0 > 0.01;
-  const leadA = a1;
 
   const fullCheck = L1 + L2;
   const drawn = fullCheck * (vector ? 1 : check);
@@ -133,11 +138,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       ) : ringVisible ? (
         <path d={arcPath(CX, CY, R_RING, a0, a1)} fill="none" stroke={C.teal} strokeWidth={20} strokeLinecap="round" />
       ) : null}
-      {!vector && ringIn > 0.01 && ringIn < 0.999 ? (
-        <circle cx={CX + R_RING * Math.sin(leadA)} cy={CY - R_RING * Math.cos(leadA)} r={16} fill={shade(C.teal, 0.4)} />
-      ) : null}
       {/* cakram */}
-      {disk > 0.005 ? (
+      {disk > 0.02 ? (
         <g transform={`translate(${CX} ${CY}) scale(${(disk * land * breath).toFixed(4)})`}>
           <circle r={R_DISK} fill={C.green} />
           <path
@@ -186,14 +188,16 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         </g>
       ) : null}
       {/* sinar ledakan */}
-      {showBurst
+      {showBurst && !vector
         ? Array.from({length: 8}, (_, i) => {
             const a = (i / 8) * TAU + TAU / 16;
-            const e = out(clamp(bt * 1.25));
-            const r0 = R_RING + 30 + 70 * e;
-            const len = 60 * (1 - out(clamp(bt))) + 4;
+            // sinar melesat: ujung luar bergerak lebih cepat dari ujung dalam → memanjang lalu memendek
+            const r0 = R_RING + 28 + 150 * out(clamp(bt));
+            const r1 = R_RING + 28 + 150 * out(clamp(bt * 2));
+            const len = r1 - r0;
             const col = [C.yellow, C.teal][i % 2];
-            const o = vector ? 1 : 1 - seg(bt, 0.6, 1);
+            const o = clamp(bt * 8) * (1 - seg(bt, 0.65, 1));
+            if (o < 0.01) return null;
             return (
               <line
                 key={i}
@@ -236,10 +240,10 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           </g>
         );
       })}
-      {/* kilau saat ditahan */}
-      <Sparkle x={CX + 330} y={CY - 250} r={24 * (vector ? 1 : hold) * (0.8 + 0.2 * wave(p, 4))} color={C.yellow} rot={12} />
-      <Sparkle x={CX - 340} y={CY + 170} r={18 * (vector ? 1 : hold) * (0.8 + 0.2 * wave(p, 4, 0.5))} color={C.teal} />
-      <Sparkle x={CX - 300} y={CY - 260} r={13 * (vector ? 1 : hold) * wave01(p, 3, 0.2)} color={C.green} rot={30} />
+      {/* kilau saat ditahan (motion; di vektor peran ini diambil konfeti) */}
+      <Sparkle x={CX + 330} y={CY - 250} r={vector ? 0 : 24 * hold * (0.8 + 0.2 * wave(p, 4))} color={C.yellow} rot={12} />
+      <Sparkle x={CX - 340} y={CY + 170} r={vector ? 0 : 18 * hold * (0.8 + 0.2 * wave(p, 4, 0.5))} color={C.teal} />
+      <Sparkle x={CX - 300} y={CY - 260} r={vector ? 0 : 13 * hold * wave01(p, 3, 0.2)} color={C.green} rot={30} />
     </g>
   );
 };

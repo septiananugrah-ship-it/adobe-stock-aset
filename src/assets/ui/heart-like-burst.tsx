@@ -20,6 +20,9 @@ export const meta: Meta = {
     'burst',
     'particles',
     'icon',
+    'animated icon',
+    'ui animation',
+    'heart icon',
     'ui',
     'user interface',
     'app',
@@ -64,7 +67,7 @@ const SIDE = 'M0.48,-0.95 C0.72,-0.95 1,-0.68 1,-0.3 C1,0.15 0.55,0.55 0,0.92 C0
 const scaled = (d: string, k: number) => d.replace(/-?\d*\.?\d+/g, (m) => (Number(m) * k).toFixed(2));
 const HEART_S = scaled(HEART, S);
 const SIDE_S = scaled(SIDE, S);
-const POP = 0.16;
+const POP = 0.15;
 
 const PARTS = (() => {
   const r = rng(7);
@@ -98,18 +101,19 @@ const beat = (x: number) => {
 };
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
-  const anti = vector ? 0 : Math.sin((Math.PI / 2) * seg(p, 0.08, POP, inOut)) * (p < POP + 0.001 ? 1 : 0);
+  // tekan (antisipasi): hati garis mengecil, tetap tertekan sampai memudar saat hati penuh meletup
+  const anti = vector || p > 0.5 ? 0 : Math.sin((Math.PI / 2) * seg(p, 0.085, POP, inOut));
   const fillIn = vector ? 1 : seg(p, POP, POP + 0.13, (t) => outBack(t, 2.6));
   // "batal suka": isi hati surut seperti cairan yang terkuras
-  const drain = vector ? 0 : seg(p, 0.8, 0.91, inOut);
+  const drain = vector ? 0 : seg(p, 0.82, 0.92, inOut);
   const fill = p > 0.5 && !vector ? 1 : fillIn;
   const fillO = drain >= 0.999 ? 0 : 1;
-  const outline = vector ? 0 : p < 0.5 ? 1 - seg(p, POP, POP + 0.02) : seg(p, 0.76, 0.8, inOut);
-  const hold = vector ? 0 : yoyo(p, 0.3, 0.36, 0.74, 0.8);
+  const outline = vector ? 0 : p < 0.5 ? 1 - seg(p, POP, POP + 0.02) : seg(p, 0.78, 0.82, inOut);
+  const hold = vector ? 0 : yoyo(p, 0.29, 0.35, 0.76, 0.82);
   const pulse = 1 + 0.055 * hold * beat(p * 6);
-  const idle = 1 + 0.02 * wave(p, 2);
+  const idle = 1 + 0.022 * wave(p, 4);
   const bt = vector ? 0.45 : (p - POP - 0.015) / 0.17;
-  const sparkle = vector ? 1 : yoyo(p, 0.22, 0.32, 0.74, 0.84, out, inOut);
+  const sparkle = vector ? 1 : yoyo(p, 0.21, 0.31, 0.76, 0.86, out, inOut);
 
   const shadowS = Math.max(fill * fillO, outline);
   return (
@@ -130,6 +134,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* partikel berpasangan */}
       {bt > 0 && bt < 1
         ? PARTS.map((q, i) => {
+            // pose vektor: sektor bawah dikosongkan agar partikel tidak menimpa bayangan lantai
+            if (vector && Math.abs(q.a - Math.PI) < 0.75) return null;
             const e = out(clamp(bt * 1.15));
             const d = 200 + (q.d - 200 + 40) * e;
             const r1 = vector ? 15 : 17 * (1 - seg(bt, 0.35, 1));
@@ -200,7 +206,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       })}
       <Sparkle x={CX + 330} y={CY - 210} r={24 * sparkle * (0.8 + 0.2 * wave(p, 4))} color={C.yellow} rot={15} />
       <Sparkle x={CX - 340} y={CY + 120} r={18 * sparkle * (0.8 + 0.2 * wave(p, 4, 0.5))} color={C.violet} />
-      <Sparkle x={CX + 300} y={CY + 190} r={13 * sparkle * (0.75 + 0.25 * wave(p, 3, 0.2))} color={C.pink} rot={30} />
+      <Sparkle x={CX + 320} y={CY + 235} r={16 * (vector ? 1 : sparkle * (0.75 + 0.25 * wave(p, 3, 0.2)))} color={C.pink} rot={30} />
     </g>
   );
 };

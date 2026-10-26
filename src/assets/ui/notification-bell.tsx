@@ -19,6 +19,10 @@ export const meta: Meta = {
     'reminder',
     'new message',
     'icon',
+    'animated icon',
+    'ui animation',
+    'push notification',
+    'alert icon',
     'ui',
     'user interface',
     'app',
@@ -58,29 +62,45 @@ const PIV = {x: CX, y: 236}; // titik gantung (atas kenop)
 const BODY = 'M716,648 C764,632 792,604 792,560 L792,470 C792,358 864,282 960,282 C1056,282 1128,358 1128,470 L1128,560 C1128,604 1156,632 1204,648 Z';
 const SIDE =
   'M1012,292 C1084,316 1128,384 1128,470 L1128,560 C1128,604 1156,632 1204,648 L1080,648 C1090,616 1086,582 1086,548 L1086,470 C1086,392 1062,332 1012,292 Z';
-const RING_T = [0.1, 0.5];
+// dua dering per loop: dering utama (lebar) lalu dering pengingat (lebih kecil)
+const RINGS = [
+  {a: 0.08, b: 0.4, amp: 15, cyc: 6.5},
+  {a: 0.56, b: 0.72, amp: 8, cyc: 3.5},
+];
+const WAVE_C = {y: 400, r: [372, 442], span: 17};
 
-/** Sudut ayunan (derajat) saat berdering: osilasi teredam. */
-const swingAt = (p: number) => {
-  const u = (p - RING_T[0]) / (RING_T[1] - RING_T[0]);
+/** Selubung dering (0..1): naik cepat, lalu meluruh. */
+const envAt = (p: number, a: number, b: number) => {
+  const u = (p - a) / (b - a);
   if (u <= 0 || u >= 1) return 0;
-  const env = inOut(clamp(u / 0.1)) * Math.pow(1 - u, 1.6);
-  return 18 * env * Math.sin(TAU * 5.5 * u);
+  return inOut(clamp(u / 0.15)) * Math.pow(1 - u, 1.5);
 };
 
+/** Sudut ayunan (derajat) saat berdering: osilasi teredam. */
+const swingAt = (p: number) =>
+  RINGS.reduce((acc, r) => {
+    const u = (p - r.a) / (r.b - r.a);
+    if (u <= 0 || u >= 1) return acc;
+    return acc + r.amp * envAt(p, r.a, r.b) * Math.sin(TAU * r.cyc * u);
+  }, 0);
+
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
-  const ringU = clamp((p - RING_T[0]) / (RING_T[1] - RING_T[0]));
-  const env = ringU > 0 && ringU < 1 ? inOut(clamp(ringU / 0.08)) * Math.pow(1 - ringU, 1.2) : 0;
+  // selubung gelombang suara: muncul lebih lembut daripada ayunan (tanpa kedip)
+  const waveEnv = (r: (typeof RINGS)[number]) => {
+    const u = (p - r.a) / (r.b - r.a);
+    return u <= 0 || u >= 1 ? 0 : inOut(clamp(u / 0.22)) * Math.pow(1 - u, 1.3);
+  };
+  const env = Math.max(waveEnv(RINGS[0]), 0.8 * waveEnv(RINGS[1]));
   // antisipasi: lonceng sedikit tertekan sebelum berayun
-  const anti = Math.sin(Math.PI * seg(p, 0.05, 0.12, inOut));
+  const anti = Math.sin(Math.PI * seg(p, 0.035, 0.09, inOut));
   const idle = 1.6 * wave(p, 2);
   const ang = vector ? -9 : swingAt(p) + idle;
   // pemukul tertinggal dari badan lonceng
-  const clap = vector ? 7 : -0.55 * swingAt(p - 0.022) - 0.4 * idle;
+  const clap = vector ? 7 : -0.6 * swingAt(p - 0.02) - 0.4 * idle;
   const breath = 1 + 0.014 * wave(p, 2, 0.25);
-  const badge = vector ? 1 : yoyo(p, 0.16, 0.25, 0.82, 0.9, (t) => outBack(t, 2.4), inOut);
-  const badgePop = vector ? 1 : 1 + 0.06 * wave(p, 4) * seg(p, 0.3, 0.36) * (1 - seg(p, 0.76, 0.82));
-  const sparkle = vector ? 1 : yoyo(p, 0.2, 0.3, 0.74, 0.84, out, inOut);
+  const badge = vector ? 1 : yoyo(p, 0.14, 0.22, 0.84, 0.9, (t) => outBack(t, 2.4), inOut);
+  const badgePop = vector ? 1 : 1 + 0.06 * wave(p, 4) * seg(p, 0.3, 0.36) * (1 - seg(p, 0.78, 0.84));
+  const sparkle = vector ? 1 : yoyo(p, 0.2, 0.3, 0.76, 0.86, out, inOut);
   const sy = 1 - 0.05 * anti;
   const sx = 1 + 0.03 * anti;
   return (
@@ -89,14 +109,14 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* gelombang suara di kedua sisi */}
       {[-1, 1].map((side) =>
         [0, 1].map((i) => {
-          const r = 330 + i * 70;
-          const a = vector ? 1 : clamp(env * 1.6) * (0.55 + 0.45 * wave01(p, 10, -i * 0.25));
+          const r = WAVE_C.r[i];
+          const a = vector ? 1 : clamp(env * 1.8) * (0.55 + 0.45 * wave01(p, 10, -i * 0.25));
           if (a <= 0.01) return null;
-          const grow = vector ? 0 : 14 * wave01(p, 10, -i * 0.25);
+          const grow = vector ? 0 : 12 * wave01(p, 10, -i * 0.25);
           const rr = r + grow;
-          const a0 = (side > 0 ? 90 : -90) - 22;
-          const a1 = (side > 0 ? 90 : -90) + 22;
-          const pt = (deg: number) => [CX + rr * Math.sin((deg * Math.PI) / 180), 470 - rr * Math.cos((deg * Math.PI) / 180)];
+          const a0 = (side > 0 ? 90 : -90) - WAVE_C.span;
+          const a1 = (side > 0 ? 90 : -90) + WAVE_C.span;
+          const pt = (deg: number) => [CX + rr * Math.sin((deg * Math.PI) / 180), WAVE_C.y - rr * Math.cos((deg * Math.PI) / 180)];
           const [x0, y0] = pt(a0);
           const [x1, y1] = pt(a1);
           return (
@@ -147,8 +167,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           ) : null}
         </g>
       </g>
-      <Sparkle x={1290} y={262} r={24 * sparkle * (0.8 + 0.2 * wave(p, 4))} color={C.yellow} rot={15} />
-      <Sparkle x={636} y={330} r={18 * sparkle * (0.8 + 0.2 * wave(p, 4, 0.5))} color={C.coral} />
+      <Sparkle x={1262} y={196} r={24 * sparkle * (0.8 + 0.2 * wave(p, 4))} color={C.yellow} rot={15} />
+      <Sparkle x={688} y={262} r={18 * sparkle * (0.8 + 0.2 * wave(p, 4, 0.5))} color={C.coral} />
       <Sparkle x={1312} y={690} r={14 * sparkle * (0.75 + 0.25 * wave(p, 3, 0.2))} color={C.sky} rot={30} />
     </g>
   );
