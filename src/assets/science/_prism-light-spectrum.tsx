@@ -3,7 +3,7 @@
 // ungu paling banyak (paling bawah). Cahaya menyala, kipas spektrum mekar, prisma bergoyang halus sehingga kipas
 // ikut bergeser, lalu cahaya padam bergerak menjauh (loop).
 import React from 'react';
-import {TAU, clamp, inOut, mix, mod, out, seg, wave, wave01, yoyo} from '../../kit/loop';
+import {clamp, inOut, mix, mod, seg, wave, wave01, yoyo} from '../../kit/loop';
 import {C, blend, shade} from '../../kit/palette';
 import {Glow, Sparkle, roundedPath} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
@@ -140,7 +140,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const tail = vector ? 0 : seg(p, 0.74, 0.92, inOut);
   const on = vector ? 1 : yoyo(p, 0.06, 0.1, 0.74, 0.8);
   const hold = seg(p, 0.34, 0.42) * (1 - seg(p, 0.66, 0.74));
-  const rot = vector ? 0 : 0.05 * wave(p, 1, 0.25) * yoyo(p, 0.3, 0.42, 0.62, 0.74) * 1 + 0 * TAU;
+  const rot = vector ? 0 : 0.05 * wave(p, 1, 0.25) * yoyo(p, 0.3, 0.42, 0.62, 0.74);
   const v = verts(rot);
   const L1 = 430; // sumber → masuk
   const L2 = 230; // dalam kaca (perkiraan)
@@ -210,7 +210,6 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <Sparkle x={1440} y={330} r={12 * (0.6 + 0.4 * wave01(p, 2, 0.4))} color={C.sky} />
       <Sparkle x={520} y={300} r={19 * (0.6 + 0.4 * wave01(p, 2, 0.7))} color={C.purple} rot={-8} />
       <Sparkle x={450} y={380} r={11 * (0.6 + 0.4 * wave01(p, 2, 0.2))} color={C.yellow} />
-      {void out}
     </g>
   );
 };
