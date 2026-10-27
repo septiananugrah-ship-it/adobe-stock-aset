@@ -1,8 +1,12 @@
 export const ASSET_THEMES = {
+ "business-bank-building-coin": "business",
+ "business-coin-stacks-growth": "business",
  "business-contactless-card-payment": "business",
  "business-gears-teamwork": "business",
  "business-hourglass-time-money": "business",
  "business-laptop-kpi-dashboard": "business",
+ "business-megaphone-marketing": "business",
+ "business-money-tree-coins": "business",
  "business-monitor-growth-chart": "business",
  "business-pie-chart-segments": "business",
  "business-piggy-bank-coins": "business",
