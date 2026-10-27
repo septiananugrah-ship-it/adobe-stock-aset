@@ -1,5 +1,5 @@
-// Tiga turbin angin di bukit hijau: baling-baling berputar dengan kecepatan berbeda (kelipatan 360° per loop),
-// garis angin melintas, awan kecil hanyut, pohon bergoyang pelan. Seluruh gerak periodik → loop mulus.
+// Tiga turbin angin di bukit hijau: baling-baling 3 bilah (120°) berputar searah jarum jam dengan kecepatan berbeda
+// (kelipatan 360° per loop), garis angin melintas di langit di belakang turbin, awan kecil hanyut, pohon bergoyang pelan. Seluruh gerak periodik → loop mulus.
 import React from 'react';
 import {mix, mod, TAU, wave} from '../../kit/loop';
 import {blend, C, shade} from '../../kit/palette';
@@ -58,7 +58,7 @@ const ridge = (f: (x: number) => number, x0: number, x1: number, inset: number) 
 const TURBINES = [
   {x: 1196, y: backY(1196), h: 280, blade: 112, k: 2, ph: 0.1, depth: 1},
   {x: 850, y: frontY(850), h: 390, blade: 168, k: 1, ph: 0, depth: 0},
-  {x: 668, y: frontY(668), h: 190, blade: 82, k: 2, ph: 0.4, depth: 0},
+  {x: 690, y: frontY(690), h: 196, blade: 82, k: 2, ph: 0.4, depth: 0},
 ];
 
 // bilah: profil lebar (chord) sepanjang t ∈ [0,1], tepi depan lebih lurus, ujung membulat
@@ -82,8 +82,9 @@ const Turbine: React.FC<{x: number; y: number; h: number; blade: number; rot: nu
       {/* tiang meruncing */}
       <path d={`M${x - wb},${y + 30} L${x - wt},${hubY} L${x + wt},${hubY} L${x + wb},${y + 30} Z`} fill={C.white} />
       <path d={`M${x},${y + 30} L${x},${hubY} L${x + wt},${hubY} L${x + wb},${y + 30} Z`} fill={C.mist} />
-      {/* rumah generator */}
-      <rect x={x - hub * 0.9} y={hubY - hub * 0.75} width={hub * 2.6} height={hub * 1.5} rx={hub * 0.6} fill={C.mist} />
+      {/* rumah generator (kapsul di belakang rotor) */}
+      <rect x={x - hub * 0.6} y={hubY - hub * 0.72} width={hub * 2.5} height={hub * 1.44} rx={hub * 0.72} fill={C.white} />
+      <rect x={x - hub * 0.6} y={hubY} width={hub * 2.5} height={hub * 0.72} rx={hub * 0.36} fill={C.mist} />
       {/* baling-baling */}
       <g transform={`translate(${x} ${hubY}) rotate(${rot.toFixed(3)})`}>
         {[0, 120, 240].map((a) => (
@@ -95,8 +96,9 @@ const Turbine: React.FC<{x: number; y: number; h: number; blade: number; rot: nu
           </g>
         ))}
       </g>
-      <circle cx={x} cy={hubY} r={hub} fill={C.white} />
-      <circle cx={x} cy={hubY} r={hub * 0.5} fill={C.mist} />
+      <circle cx={x} cy={hubY} r={hub} fill={C.mist} />
+      <circle cx={x - hub * 0.1} cy={hubY - hub * 0.1} r={hub * 0.82} fill={C.white} />
+      <circle cx={x - hub * 0.32} cy={hubY - hub * 0.32} r={Math.max(5, hub * 0.2)} fill={C.cloud} />
     </g>
   );
 };
@@ -123,9 +125,9 @@ const Cloud: React.FC<{x: number; y: number; s: number}> = ({x, y, s}) => (
 
 // garis angin: lengkung yang dilintasi segmen terang
 const WINDS = [
-  {d: 'M640,430 C710,400 770,452 846,426 S962,388 1016,410', len: 400, y: 0, k: 2, o: 0},
-  {d: 'M990,566 C1050,536 1112,586 1182,556 S1276,524 1312,540', len: 345, y: 0, k: 2, o: 0.5},
-  {d: 'M604,640 C664,614 716,662 790,636', len: 200, y: 0, k: 3, o: 0.25},
+  {d: 'M640,384 C700,354 760,404 830,376 S940,334 1000,354', len: 380, y: 0, k: 2, o: 0, vec: null},
+  {d: 'M1000,524 C1060,494 1120,544 1190,514 S1290,484 1318,498', len: 335, y: 0, k: 2, o: 0.5, vec: [0.7, 0.98]},
+  {d: 'M636,604 C696,578 748,626 822,600', len: 200, y: 0, k: 3, o: 0.25, vec: [0.5, 0.92]},
 ];
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
@@ -151,31 +153,18 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           </g>
         );
       })}
-      {/* bukit belakang + turbin belakang */}
-      <Turbine x={TURBINES[0].x} y={TURBINES[0].y} h={TURBINES[0].h} blade={TURBINES[0].blade} rot={360 * TURBINES[0].k * p + 360 * TURBINES[0].ph} />
-      <path d={domePath(BACK.cx, BACK.hw, BACK.h)} fill={shade(C.green, -0.2)} />
-      <path d={domePath(BACK.cx, BACK.hw - 10, BACK.h, BASE - 24)} fill={blend(C.green, C.lime, 0.45)} />
-      <path d={ridge(backY, 1000, 1120, 22)} fill="none" stroke={shade(blend(C.green, C.lime, 0.45), 0.42)} strokeWidth={12} strokeLinecap="round" />
-      <Tree x={1420} y={backY(1420) + 6} r={34} sway={3 * wave(p, 2, 0.3)} col={C.teal} />
-      {/* turbin depan */}
-      {TURBINES.slice(1).map((t, i) => (
-        <Turbine key={i} x={t.x} y={t.y} h={t.h} blade={t.blade} rot={360 * t.k * p + 360 * t.ph} />
-      ))}
-      {/* bukit depan */}
-      <path d={domePath(FRONT.cx, FRONT.hw, FRONT.h)} fill={shade(C.green, -0.2)} />
-      <path d={frontTop} fill={C.green} />
-      <path d={ridge(frontY, 520, 700, 22)} fill="none" stroke={shade(C.green, 0.4)} strokeWidth={12} strokeLinecap="round" />
-      <Tree x={1010} y={frontY(1010) + 8} r={40} sway={3 * wave(p, 2)} col={C.teal} />
-      <Tree x={1080} y={frontY(1080) + 10} r={28} sway={3 * wave(p, 2, 0.15)} col={shade(C.teal, 0.15)} />
-      {/* garis angin */}
+      {/* garis angin (di belakang turbin, di dalam cakram langit) */}
       {WINDS.map((w, i) => {
         const t = mod(p * w.k + w.o, 1);
         const dash = w.len * 0.32;
         const off = mix(dash, -w.len, t);
         const f = Math.sin(Math.PI * t);
         if (vector) {
+          // pose statis: hanya potongan di langit terbuka (tidak menempel tiang/bilah)
+          if (!w.vec) return null;
+          const [s0, s1] = w.vec;
           return (
-            <path key={i} d={w.d} fill="none" stroke={C.white} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${dash} ${w.len * 2}`} strokeDashoffset={-w.len * 0.3} />
+            <path key={i} d={w.d} fill="none" stroke={C.white} strokeWidth={10} strokeLinecap="round" strokeDasharray={`${(w.len * (s1 - s0)).toFixed(1)} ${(w.len * 2).toFixed(1)}`} strokeDashoffset={(-w.len * s0).toFixed(1)} />
           );
         }
         return (
@@ -192,6 +181,22 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           />
         );
       })}
+      {/* bukit belakang + turbin belakang */}
+      <Turbine x={TURBINES[0].x} y={TURBINES[0].y} h={TURBINES[0].h} blade={TURBINES[0].blade} rot={360 * TURBINES[0].k * p + 360 * TURBINES[0].ph} />
+      <path d={domePath(BACK.cx, BACK.hw, BACK.h)} fill={shade(C.green, -0.2)} />
+      <path d={domePath(BACK.cx, BACK.hw - 10, BACK.h, BASE - 24)} fill={blend(C.green, C.lime, 0.45)} />
+      <path d={ridge(backY, 1000, 1120, 22)} fill="none" stroke={shade(blend(C.green, C.lime, 0.45), 0.42)} strokeWidth={12} strokeLinecap="round" />
+      <Tree x={1420} y={backY(1420) + 6} r={34} sway={3 * wave(p, 2, 0.3)} col={C.teal} />
+      {/* turbin depan */}
+      {TURBINES.slice(1).map((t, i) => (
+        <Turbine key={i} x={t.x} y={t.y} h={t.h} blade={t.blade} rot={360 * t.k * p + 360 * t.ph} />
+      ))}
+      {/* bukit depan */}
+      <path d={domePath(FRONT.cx, FRONT.hw, FRONT.h)} fill={shade(C.green, -0.2)} />
+      <path d={frontTop} fill={C.green} />
+      <path d={ridge(frontY, 520, 700, 22)} fill="none" stroke={shade(C.green, 0.4)} strokeWidth={12} strokeLinecap="round" />
+      <Tree x={1010} y={frontY(1010) + 8} r={40} sway={3 * wave(p, 2)} col={C.teal} />
+      <Tree x={1080} y={frontY(1080) + 10} r={28} sway={3 * wave(p, 2, 0.15)} col={shade(C.teal, 0.15)} />
       {/* daun kecil terbawa angin */}
       {[0, 1].map((i) => {
         const t = mod(p * 2 + i * 0.5 + 0.15, 1);
