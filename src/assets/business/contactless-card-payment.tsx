@@ -22,14 +22,15 @@ export const meta: Meta = {
 };
 
 // terminal
-const TM = {x: 576, y: 362, w: 320, h: 500, r: 40};
+const TM = {x: 600, y: 362, w: 320, h: 500, r: 40};
 const SCR = {x: TM.x + 34, y: TM.y + 118, w: TM.w - 68, h: 150, r: 18};
 const RD = {x: TM.x + TM.w / 2, y: TM.y + 62}; // pusat pembaca nirsentuh
 // kartu
 const CW = 380;
 const CH = 240;
-const REST = {x: 1196, y: 600, r: -9};
-const TAP = {x: TM.x + TM.w / 2 + 22, y: TM.y - 22, r: 4};
+const REST = {x: 1232, y: 600, r: -9};
+const TAP = {x: TM.x + TM.w / 2 + 58, y: TM.y - 16, r: 5};
+const ZOOM = 1.1; // skala seluruh komposisi (tinggi isi ±60 % kanvas)
 
 /** Ikon nirsentuh (3 busur) berpusat di (x, y), mengarah ke kanan. */
 const Waves: React.FC<{x: number; y: number; s: number; col: string; w?: number}> = ({x, y, s, col, w = 9}) => (
@@ -76,13 +77,13 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const spinOn = yoyo(p, 0.29, 0.31, 0.42, 0.44);
   const ok = yoyo(p, 0.43, 0.5, 0.82, 0.9, out, inOut); // layar hijau
   const check = yoyo(p, 0.47, 0.55, 0.82, 0.88, inOut, inOut);
-  const checkPop = outBack(clamp((p - 0.47) / 0.08), 2.5);
+  const checkPop = outBack(clamp((p - 0.47) / 0.08), 2.5) * (1 - seg(p, 0.81, 0.88, inOut));
   const spark = yoyo(p, 0.48, 0.56, 0.8, 0.88, (t) => outBack(t, 2));
   const idleBars = 1 - yoyo(p, 0.28, 0.3, 0.88, 0.92);
   const breath = 1 + 0.008 * wave(p, 2);
   const keyGlow = (i: number) => (i === 8 ? yoyo(p, 0.45, 0.48, 0.52, 0.56) : 0);
   return (
-    <g>
+    <g transform={`translate(960 600) scale(${ZOOM}) translate(-960 -600)`}>
       <Shadow cx={TM.x + TM.w / 2 + 10} cy={TM.y + TM.h + 30} rx={220} ry={22} vector={vector} />
       <Shadow cx={REST.x} cy={TM.y + TM.h + 30} rx={170 * (1 - 0.4 * tap)} ry={16} s={1 - 0.03 * wave(p, 2)} vector={vector} strength={0.8 * (1 - tap)} />
       <g transform={`translate(${TM.x + TM.w / 2} ${TM.y + TM.h}) scale(${breath / bump ** 0.5} ${breath * bump}) translate(${-(TM.x + TM.w / 2)} ${-(TM.y + TM.h)})`}>
@@ -119,8 +120,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
             </g>
           )
         ) : null}
-        {check > 0.01 ? (
-          <g transform={`translate(${SCR.x + SCR.w / 2} ${SCR.y + SCR.h / 2}) scale(${0.6 + 0.4 * checkPop})`}>
+        {check > 0.01 && checkPop > 0.01 ? (
+          <g transform={`translate(${SCR.x + SCR.w / 2} ${SCR.y + SCR.h / 2}) scale(${(0.6 + 0.4 * checkPop) * Math.min(1, checkPop * 1.6)})`}>
             <circle r={46} fill={shade(C.green, -0.14)} />
             <path d="M-22,2 L-6,18 L24,-14" fill="none" stroke={C.white} strokeWidth={13} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={`${(70 * check).toFixed(1)} 200`} />
           </g>
@@ -149,7 +150,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {[0, 1, 2].map((i) => {
         const u = seg(p, 0.25 + i * 0.05, 0.42 + i * 0.05, out);
         if (u <= 0 || u >= 1) return null;
-        const r = 90 + 190 * u;
+        const r = 205 + 150 * u;
         const w = 14 * (1 - u * u) + 3;
         return (
           <g key={`w${i}`}>
