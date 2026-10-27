@@ -1,4 +1,5 @@
 export const ASSET_THEMES = {
+ "business-balance-scale-budget": "business",
  "business-bank-building-coin": "business",
  "business-coin-stacks-growth": "business",
  "business-contactless-card-payment": "business",
