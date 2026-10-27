@@ -116,7 +116,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
     const u = seg(t, 0.04, 0.68, (v) => v);
     const env = 1 - seg(u, 0.72, 1, inOut); // ayunan mereda menjelang mendarat
     const lay = seg(u, 0.84, 1, inOut); // daun merebah ke tanah
-    const groundY = GROUND_Y - 10 + (i % 3) * 6;
+    const groundY = GROUND_Y - 16 + (i % 3) * 6;
     const ph = TAU * (1.25 * u) + i * 0.9; // ±2,5 ayunan selama jatuh
     const x = lf.x0 + lf.drift * u + 34 * Math.sin(ph) * env;
     const y = mix(lf.y0, groundY, fallY(u)) - 9 * (1 - Math.cos(2 * ph)) * env * 0.5;
