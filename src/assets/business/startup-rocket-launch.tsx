@@ -103,8 +103,8 @@ const Body: React.FC = () => {
       <path d={`M${CX + 36},${TOP + 0.47 * L} A36,36 0 0 1 ${CX - 25.5},${TOP + 0.47 * L + 25.5} A44,44 0 0 0 ${CX + 36},${TOP + 0.47 * L}Z`} fill={shade(C.sky, -0.16)} />
       <circle cx={CX - 12} cy={TOP + 0.47 * L - 13} r={10} fill={shade(C.sky, 0.6)} />
       {/* sirip tengah (depan) */}
-      <rect x={CX - 13} y={TOP + 0.8 * L} width={26} height={0.2 * L + 34} rx={13} fill={shade(red, -0.08)} />
-      <rect x={CX - 6} y={TOP + 0.82 * L} width={8} height={0.2 * L + 18} rx={4} fill={shade(red, 0.3)} />
+      <rect x={CX - 13} y={TOP + 0.74 * L} width={26} height={0.26 * L - 4} rx={13} fill={shade(red, -0.1)} />
+      <rect x={CX - 6} y={TOP + 0.76 * L} width={8} height={0.26 * L - 20} rx={4} fill={shade(red, 0.3)} />
     </g>
   );
 };

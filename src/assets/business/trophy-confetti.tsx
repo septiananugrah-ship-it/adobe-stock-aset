@@ -38,9 +38,9 @@ const CONF = (() => {
     const side = i % 2 ? 1 : -1;
     return {
       x0: X + side * (40 + r() * 80),
-      y0: 330 + r() * 40,
-      up: 160 + r() * 150,
-      out: side * (140 + r() * 420),
+      y0: 300 + r() * 30,
+      up: 200 + r() * 100,
+      out: side * (110 + r() * 380),
       fall: 760 + r() * 360,
       flut: 10 + r() * 20,
       fk: 3 + Math.floor(r() * 4),
@@ -69,11 +69,11 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <Shadow cx={X} cy={838} rx={230} ry={22} vector={vector} />
       {/* kipas sinar di belakang (berdenyut) */}
       {rays > 0.01 ? (
-        <g transform={`translate(${X} 462) scale(${rays})`}>
+        <g transform={`translate(${X} 348) scale(${rays})`}>
           {Array.from({length: 9}, (_, i) => {
-            const a = ((-165 + (i * 150) / 8) * Math.PI) / 180;
-            const r0 = 226;
-            const l = (i % 2 ? 52 : 84) * (1 + 0.16 * wave(p, 4, i * 0.11));
+            const a = ((-155 + (i * 130) / 8) * Math.PI) / 180;
+            const r0 = 146;
+            const l = (i % 2 ? 44 : 70) * (1 + 0.16 * wave(p, 4, i * 0.11));
             return (
               <path
                 key={i}

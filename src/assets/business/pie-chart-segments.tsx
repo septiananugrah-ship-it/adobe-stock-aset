@@ -47,11 +47,15 @@ const arc = (cx: number, cy: number, r: number, a0: number, a1: number) => {
   return `M${x0.toFixed(2)},${y0.toFixed(2)} A${r},${r} 0 ${a1 - a0 > Math.PI ? 1 : 0} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`;
 };
 
+/** Lebar stroke pembulat sudut juring: mengecil saat juring masih tipis agar tidak tampak seperti jarum. */
+const edge = (span: number) => Math.max(0, Math.min(10, (span - 0.02) * R * 0.25));
+
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
-  const sweep = yoyo(p, 0.05, 0.3, 0.84, 0.95, inOut, inOut); // jejak gambar 0..1 keliling
+  // jejak gambar 0..1 keliling: cepat di ujung tipis (tanpa serpihan jarum), lambat saat hampir penuh
+  const sweep = yoyo(p, 0.05, 0.3, 0.84, 0.95, out, (t) => t * t * t);
   const spin = -100 * (1 - seg(p, 0.05, 0.34, out)) + 80 * seg(p, 0.84, 0.97, inOut); // derajat
   const gap = 13 * yoyo(p, 0.3, 0.38, 0.8, 0.86);
-  const plate = 1 - yoyo(p, 0.27, 0.31, 0.8, 0.85);
+  const plate = (1 - yoyo(p, 0.27, 0.31, 0.8, 0.85)) * (1 + 0.012 * wave(p, 2));
   const popK = yoyo(p, 0.36, 0.46, 0.76, 0.83, (t) => outBack(t, 2.2), inOut);
   const idle = seg(p, 0.46, 0.52) * (1 - seg(p, 0.72, 0.77));
   const popD = 44 * popK + 7 * idle * wave(p, 3, 0.1);
@@ -83,7 +87,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         {segs.map(({i, a0, a1, mid, d, s}) =>
           a1 - a0 > 0.002 && s > 0.01 ? (
             <g key={`d${i}`} transform={`translate(${d * Math.sin(mid)} ${-d * Math.cos(mid) + DEPTH}) rotate(${spin} ${CXP} ${CYP}) translate(${CXP} ${CYP}) scale(${s}) translate(${-CXP} ${-CYP})`}>
-              <path d={wedge(CXP, CYP, R, a0, a1)} fill={shade(COLS[i], -0.25)} stroke={shade(COLS[i], -0.25)} strokeWidth={10} strokeLinejoin="round" />
+              <path d={wedge(CXP, CYP, R, a0, a1)} fill={shade(COLS[i], -0.25)} stroke={shade(COLS[i], -0.25)} strokeWidth={edge(a1 - a0)} strokeLinejoin="round" />
             </g>
           ) : null,
         )}
@@ -93,7 +97,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           const span = a1 - a0;
           return (
             <g key={`s${i}`} transform={`translate(${d * Math.sin(mid)} ${-d * Math.cos(mid)}) rotate(${spin} ${CXP} ${CYP}) translate(${CXP} ${CYP}) scale(${s}) translate(${-CXP} ${-CYP})`}>
-              <path d={wedge(CXP, CYP, R, a0, a1)} fill={col} stroke={col} strokeWidth={10} strokeLinejoin="round" />
+              <path d={wedge(CXP, CYP, R, a0, a1)} fill={col} stroke={col} strokeWidth={edge(span)} strokeLinejoin="round" />
               {span > 0.35 ? (
                 <path d={arc(CXP, CYP, R - 30, a0 + 0.16, a0 + Math.min(span - 0.16, 0.75))} fill="none" stroke={shade(col, 0.4)} strokeWidth={10} strokeLinecap="round" />
               ) : null}
@@ -105,12 +109,11 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {VALS.map((_, i) => {
         const k = rows[i];
         const y = LY + i * 92;
-        const shift = i === HI ? 22 * popK : 0;
         const bh = 22 * Math.min(1, Math.max(0, k) * 4);
         const len = Math.max(bh, LEN[i] * Math.max(0, k));
         return (
-          <g key={`r${i}`} transform={`translate(${shift} 0)`}>
-            <circle cx={LX} cy={y} r={22 * (0.55 + 0.45 * Math.min(1, k))} fill={COLS[i]} />
+          <g key={`r${i}`}>
+            <circle cx={LX} cy={y} r={22 * (0.55 + 0.45 * Math.min(1, k)) * (i === HI ? 1 + 0.2 * popK : 1)} fill={COLS[i]} />
             {bh > 1 ? (
               <rect x={LX + 44} y={y - bh / 2} width={len} height={bh} rx={bh / 2} fill={i === HI ? C.yellow : C.steel} />
             ) : null}

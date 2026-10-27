@@ -9,17 +9,17 @@ import type {DrawProps, Meta} from '../../kit/types';
 export const meta: Meta = {
   id: 'business-hourglass-time-money',
   theme: 'business',
-  title: 'Hourglass with flowing golden sand flipping over, time is money and deadline concept, seamless loop animation with alpha channel',
+  title: 'Hourglass flipping over with flowing sand and growing gold coin stack, time is money concept, seamless loop with alpha channel',
   keywords: [
-    'hourglass', 'time is money', 'deadline', 'time management', 'sand clock', 'timer', 'waiting', 'golden sand', 'time',
-    'countdown', 'productivity', 'schedule', 'planning', 'patience', 'investment', 'business', 'finance', 'efficiency',
-    'urgency', 'project management', 'coins', 'money', 'hour', 'gold', 'icon', 'flat design', 'illustration',
-    'presentation', 'explainer', 'social media', 'animation', 'motion graphics', 'seamless loop', 'looped', 'alpha channel',
-    'transparent background', 'isolated', '4k',
+    'hourglass', 'time is money', 'coins', 'coin stack', 'deadline', 'time management', 'sand clock', 'timer', 'golden sand',
+    'savings', 'investment', 'compound interest', 'money', 'time', 'countdown', 'waiting', 'productivity', 'schedule',
+    'planning', 'patience', 'finance', 'business', 'efficiency', 'urgency', 'project management', 'gold', 'icon',
+    'flat design', 'illustration', 'presentation', 'explainer', 'social media', 'animation', 'motion graphics',
+    'seamless loop', 'looped', 'alpha channel', 'transparent background', 'isolated', '4k',
   ],
   category: 3,
   seconds: 8,
-  vectorP: 0.42,
+  vectorP: 0.56,
 };
 
 const X = 880;
@@ -98,21 +98,22 @@ const FlatCoin: React.FC<{x: number; y: number; s?: number}> = ({x, y, s = 1}) =
   </g>
 );
 
-const SX = X + 330; // tumpukan koin
+const SX = X + 352; // tumpukan koin
 const FLOOR = 856; // dasar tutup bawah
 const COIN_T = 30;
 const stackY = (k: number) => FLOOR - 32 - k * COIN_T;
-const DROPS = [0.1, 0.31, 0.52]; // koin muncul di atas tumpukan
+const DROPS = [0.08, 0.25, 0.42]; // koin muncul di atas tumpukan
 const FLOW1 = 0.7; // pasir habis
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   // pasir mengalir 0 → FLOW1, gundukan merata, lalu diangkat & dibalik (sedikit lewat lalu kembali)
   const flowT = seg(p, 0, FLOW1, (t) => 0.85 * t + 0.15 * inOut(t));
   const settle = seg(p, FLOW1 + 0.01, 0.77, inOut);
-  const lift = -38 * yoyo(p, 0.77, 0.83, 0.925, 0.99, inOut, inOut);
-  const u = seg(p, 0.905, 0.975);
-  const rot = 180 * seg(p, 0.805, 0.925, inOut) + 9 * Math.sin(Math.PI * u) * (1 - u);
-  const morph = seg(p, 0.872, 0.985, (t) => t * t); // pasir merosot (dipercepat gravitasi) ke leher setelah terbalik
+  const lift = -38 * yoyo(p, 0.81, 0.865, 0.95, 0.995, inOut, inOut);
+  const u = seg(p, 0.93, 0.99);
+  const rot = 180 * seg(p, 0.855, 0.95, inOut) + 9 * Math.sin(Math.PI * u) * (1 - u);
+  // setelah lewat ±120° pasir merosot (dipercepat gravitasi) ke leher, tepat sebelum mengalir lagi di p = 0
+  const morph = seg(p, 0.91, 0.975, (t) => t * t);
   const top = SAND * (1 - flowT);
   const bot = SAND * flowT;
   const SAND_C = C.yellow;
@@ -125,7 +126,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const bd0 = mix(DM - Lb, 0, morph);
   const bd1 = mix(DM, L0, morph);
   const peak = 30 * clamp(bot / (0.08 * SAND)) * (1 - settle);
-  const dip = 14 * clamp(top / (0.1 * SAND)) * (1 - seg(p, FLOW1 - 0.03, FLOW1 + 0.01));
+  const neckBand = Math.min(L0, 30) * seg(morph, 0.8, 1);
+  // kawah di permukaan atas terbentuk perlahan setelah pasir mulai mengalir (p = 0 identik dengan akhir loop)
+  const dip = 14 * clamp(top / (0.1 * SAND)) * seg(p, 0, 0.08, inOut) * (1 - seg(p, FLOW1 - 0.03, FLOW1 + 0.01));
   // aliran: kepala jatuh dari leher di awal, ekor jatuh di akhir
   const yBot = NY + (DM - Lb) - peak + 4;
   const head = seg(p, 0, 0.028, (t) => t * t);
@@ -137,15 +140,15 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const wood = C.brown;
   return (
     <g>
-      <Shadow cx={X} cy={FLOOR + 30} rx={230} ry={24} s={1 + lift / 300} vector={vector} />
-      <Shadow cx={SX} cy={FLOOR + 30} rx={110} ry={18} vector={vector} />
+      <Shadow cx={X} cy={FLOOR + 30} rx={205} ry={22} s={1 + lift / 300} vector={vector} />
+      <Shadow cx={SX} cy={FLOOR + 30} rx={92} ry={16} vector={vector} />
       {/* tumpukan koin: 1 koin dasar + 3 koin jatuh selama pasir mengalir, hilang bertingkat saat dibalik */}
       <FlatCoin x={SX} y={stackY(0)} />
       {DROPS.map((t0, i) => {
-        const appear = seg(p, t0, t0 + 0.035, (t) => outBack(t, 2));
+        const appear = seg(p, t0, t0 + 0.045, (t) => outBack(t, 1.4));
         const fall = seg(p, t0 + 0.045, t0 + 0.105, (t) => t * t);
         const land = t0 + 0.105;
-        const gone = seg(p, 0.8 + (2 - i) * 0.035, 0.86 + (2 - i) * 0.035, inOut);
+        const gone = seg(p, 0.79 + (2 - i) * 0.035, 0.85 + (2 - i) * 0.035, inOut);
         const s = appear * (1 - gone) * (p >= land ? pop(p, land, 0.07, 0.1) : 1);
         if (s < 0.01) return null;
         const y = mix(stackY(i + 1) - 300, stackY(i + 1), fall);
@@ -166,6 +169,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         {Lt > 1 ? <path d={sandPath(-1, 0, Math.min(Lt, 30), 0, 0)} fill={SAND_D} /> : null}
         {/* pasir bawah */}
         {bd1 - bd0 > 1 ? <path d={sandPath(1, bd0, bd1, morph > 0 ? peak * (1 - morph) : peak, 0)} fill={SAND_C} /> : null}
+        {/* pasir yang memadat di leher setelah dibalik (= pita gelap bulb atas di p = 0) */}
+        {neckBand > 1 ? <path d={sandPath(1, bd0, bd0 + neckBand, 0, 0)} fill={SAND_D} /> : null}
         {/* aliran pasir */}
         {streamOn ? (
           <g>

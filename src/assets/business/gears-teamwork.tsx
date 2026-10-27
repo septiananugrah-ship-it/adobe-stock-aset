@@ -45,7 +45,7 @@ const GEARS = [A, B, Cg];
  * Garis luar roda gigi (gigi ke-0 di sudut 0). Gigi trapesium gemuk: lebar ±0,235 jarak-bagi di lingkaran bagi
  * (celah sedikit lebih lebar dari gigi → ada ruang main, gigi tidak saling menembus).
  */
-export const gearPoints = (g: Gear): [number, number][] => {
+const gearPoints = (g: Gear): [number, number][] => {
   const r0 = rp(g);
   const ra = r0 + ADD;
   const rf = r0 - DED;
@@ -74,13 +74,12 @@ const OUT = GEARS.map((g) => roundedPath(gearPoints(g), 9));
 const driven = (g1: Gear, th1: number, g2: Gear, phi: number) => phi + Math.PI - Math.PI / g2.n + ((phi - th1) * g1.n) / g2.n;
 
 /** Sudut tiap roda (rad, positif = searah jarum jam di layar) pada kemajuan δ roda A. */
-export const angles = (d: number) => {
+const angles = (d: number) => {
   const a = d;
   const b = driven(A, a, B, AB);
   const c = driven(B, b, Cg, BC);
   return [a, b, c];
 };
-export const GEOM = {A, B, Cg, M, ADD, DED};
 
 const GearBody: React.FC<{g: Gear; i: number; ang: number}> = ({g, i, ang}) => {
   const r0 = rp(g);

@@ -17,7 +17,7 @@ export const meta: Meta = {
     'illustration', 'icon', 'cartoon', 'animation', 'motion graphics', 'seamless loop', 'looped', 'alpha channel',
     'transparent background', 'isolated', '4k', 'explainer', 'presentation', 'infographic', 'social media',
   ],
-  category: 19,
+  category: 5,
   seconds: 8,
   vectorP: 0.66,
 };

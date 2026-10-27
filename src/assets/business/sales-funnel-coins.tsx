@@ -38,11 +38,15 @@ const COIN_T = 30; // tebal koin
 const K = 0.19; // rasio ry/rx tepi elips
 
 /** Titik-titik tepi depan elips (setengah bawah) dari x = a ke x = b (dalam satuan setengah lebar, −1..1). */
-const front = (cy: number, rx: number, a: number, b: number, ry = rx * K, n = 24) =>
-  Array.from({length: n + 1}, (_, i) => {
-    const u = a + ((b - a) * i) / n;
-    return [X + u * rx, cy + ry * Math.sqrt(Math.max(0, 1 - u * u))] as [number, number];
+const front = (cy: number, rx: number, a: number, b: number, ry = rx * K, n = 48) => {
+  // sampel merata per sudut (u = cos θ) agar ujung elips tetap halus, bukan patah-patah
+  const ta = Math.acos(Math.max(-1, Math.min(1, a)));
+  const tb = Math.acos(Math.max(-1, Math.min(1, b)));
+  return Array.from({length: n + 1}, (_, i) => {
+    const th = ta + ((tb - ta) * i) / n;
+    return [X + Math.cos(th) * rx, cy + ry * Math.sin(th)] as [number, number];
   });
+};
 const poly = (pts: [number, number][]) => 'M' + pts.map((q) => `${q[0].toFixed(1)},${q[1].toFixed(1)}`).join(' L') + ' Z';
 /** Badan tingkat (tepi atas & bawah melengkung) untuk rentang horizontal a..b. */
 const tierPath = (t: (typeof TIERS)[number], a = -1, b = 1, ry0?: number) => {
@@ -101,7 +105,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         <ellipse cx={X} cy={RIM_Y + 4} rx={RIM.rx - 30} ry={RIM.ry - 14} fill={shade(C.blue, -0.5)} />
         {/* bola prospek masuk */}
         {BALLS.map((b, i) => {
-          const appear = seg(p, b.t0, b.t0 + 0.035, (t) => outBack(t, 2.2));
+          const appear = seg(p, b.t0, b.t0 + 0.045, (t) => outBack(t, 1.6));
           const f = seg(p, b.t0 + 0.04, b.t0 + 0.12, (t) => t * t);
           if (appear <= 0.01 || f >= 1) return null;
           const y = 140 + (RIM_Y + 110 - 140) * f;
