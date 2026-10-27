@@ -24,7 +24,8 @@ export const meta: Meta = {
 
 const FC = {x: 960, y: 404}; // pusat kepala bunga
 const STEM_BASE = {x: 960, y: 820};
-const ORBIT = {cx: 960, cy: 420, a: 350, b: 100};
+// orbit miring: lewat depan di bawah kepala bunga (depan batang), lewat belakang di atasnya → wajah bunga tak tertutup
+const ORBIT = {cx: 960, cy: 430, a: 350, b: 220};
 const FLAPS = 14;
 
 const butterflyAt = (p: number) => {
@@ -86,7 +87,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const trailDot = (t: (typeof trail)[number]) => {
     const k = 1 - t.i / 12;
     const r = (4 + 5 * k) * (0.96 + 0.16 * t.z);
-    if (vector && t.i % 2) return null;
+    if (vector && (t.i % 2 || Math.hypot(t.x - FC.x, t.y + 30 - FC.y) < 200)) return null;
     return <circle key={`t${t.i}`} cx={t.x} cy={t.y + 30} r={r} fill={shade(C.sky, 0.35)} opacity={vector ? undefined : 0.35 + 0.65 * k} />;
   };
 
@@ -116,14 +117,16 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
               <ellipse cx={-8} cy={-124} rx={7} ry={30} fill={shade(C.yellow, 0.45)} />
             </g>
           ))}
-          <circle r={78} fill={shade(C.brown, -0.3)} />
-          <circle r={60} fill={shade(C.brown, -0.12)} />
-          {Array.from({length: 18}, (_, i) => {
-            const a = (i / 18) * TAU;
-            const rr = i % 2 ? 44 : 28;
+          {/* cakram biji besar seperti bunga matahari asli (± setengah diameter kepala) */}
+          <circle r={92} fill={shade(C.brown, -0.3)} />
+          <circle r={74} fill={shade(C.brown, -0.12)} />
+          {Array.from({length: 24}, (_, i) => {
+            const a = (i / 24) * TAU;
+            const rr = i % 2 ? 54 : 34;
             return <circle key={i} cx={rr * Math.cos(a + (i % 2) * 0.17)} cy={rr * Math.sin(a + (i % 2) * 0.17)} r={6} fill={shade(C.brown, 0.15)} />;
           })}
-          <circle cx={-22} cy={-24} r={12} fill={shade(C.brown, 0.4)} />
+          <circle cx={0} cy={0} r={6} fill={shade(C.brown, 0.15)} />
+          <path d={`M${(-66 * Math.cos(0.35)).toFixed(1)},${(-66 * Math.sin(0.35)).toFixed(1)} A66,66 0 0 1 ${(-66 * Math.cos(1.2)).toFixed(1)},${(-66 * Math.sin(1.2)).toFixed(1)}`} fill="none" stroke={shade(C.brown, 0.35)} strokeWidth={9} strokeLinecap="round" />
         </g>
       </g>
       {/* rumput */}

@@ -21,19 +21,20 @@ export const meta: Meta = {
   vectorP: 0.37,
 };
 
-const K = 3; // tiap tetes jatuh 3 kali per loop
-const FALL = 0.46; // porsi siklus untuk jatuh
+const K = 2; // tiap tetes jatuh 2 kali per loop (siklus 3 dtk)
+const FALL = 0.28; // porsi siklus untuk jatuh (±0,8 dtk, makin cepat)
+const RIPPLE = 0.32; // porsi siklus untuk riak menyebar & memudar
 const POOL = {cx: 960, cy: 826, rx: 344, ry: 56};
 const TOP = 462; // tetes lahir di balik awan
 
 const R = rng(11);
-const COLS = [-212, -128, -44, 44, 128, 212];
+const COLS = [-204, -136, -68, 0, 68, 136, 204];
 const DROPS = COLS.flatMap((cx, c) =>
-  [0, 1, 2].map((j) => {
+  [0, 1].map((j) => {
     const z = (c * 0.53 + j * 0.37) % 1;
     return {
       x: 960 + cx + (R() - 0.5) * 22,
-      o: (c * 0.41 + j / 3 + R() * 0.05) % 1,
+      o: (c * 0.29 + j / 2 + R() * 0.05) % 1,
       z,
       landY: POOL.cy - 20 + z * 36,
     };
@@ -55,19 +56,37 @@ const PUDDLE_SIDE = puddlePath(9);
 
 // awan dari gabungan lingkaran + alas membulat
 const CLOUD_BUMPS: [number, number, number][] = [
-  [770, 380, 86],
+  [782, 374, 86],
   [880, 318, 116],
   [1018, 296, 132],
-  [1146, 352, 98],
+  [1124, 352, 98],
 ];
-const Cloud: React.FC<{fill: string; dy?: number; dx?: number}> = ({fill, dy = 0, dx = 0}) => (
+// baseOnly: hanya alas (untuk pita bayangan bawah) supaya bayangan tidak mengintip di lekuk antar-tonjolan
+const Cloud: React.FC<{fill: string; dy?: number; dx?: number; baseOnly?: boolean}> = ({fill, dy = 0, dx = 0, baseOnly}) => (
   <g transform={`translate(${dx} ${dy})`} fill={fill}>
-    {CLOUD_BUMPS.map(([x, y, r], i) => (
-      <circle key={i} cx={x} cy={y} r={r} />
-    ))}
+    {baseOnly
+      ? null
+      : CLOUD_BUMPS.map(([x, y, r], i) => (
+          <circle key={i} cx={x} cy={y} r={r} />
+        ))}
     <rect x={690} y={350} width={540} height={110} rx={55} />
   </g>
 );
+
+// [kolom, y, kedalaman] untuk pose vektor; riak [x, y, rx]
+const VDROPS: [number, number, number][] = [
+  [0, 590, 0.3],
+  [1, 520, 0.8],
+  [2, 676, 0.5],
+  [3, 556, 0.9],
+  [4, 640, 0.2],
+  [5, 516, 0.6],
+  [6, 604, 0.4],
+];
+const VRINGS: [number, number, number][] = [
+  [880, 822, 64],
+  [1100, 832, 46],
+];
 
 const dropPath = (r: number, h: number) =>
   `M0,${-h} Q${r * 1.05},${-r * 0.35} ${r},0 A${r},${r} 0 0 1 ${-r},0 Q${-r * 1.05},${-r * 0.35} 0,${-h} Z`;
@@ -78,7 +97,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const backBob = 6 * wave(p, 1, 0.3);
   const poolPulse = 1 + 0.01 * wave(p, 3);
 
-  const drops = DROPS.map((d) => ({...d, t: mod(p * K + d.o, 1)}));
+  // pose vektor: susunan tetes & riak yang dikurasi (7 tetes berselang-seling, 2 riak)
+  const drops = vector ? [] : DROPS.map((d) => ({...d, t: mod(p * K + d.o, 1)}));
   return (
     <g>
       {/* genangan */}
@@ -93,12 +113,12 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* riak & percikan */}
       {drops.map((d, i) => {
         if (d.t < FALL) return null;
-        const u = (d.t - FALL) / (1 - FALL - 0.04);
+        const u = (d.t - FALL) / RIPPLE;
         if (u > 1) return null;
         const rings = [0, 0.3].map((lag, j) => {
           const v = clamp((u - lag) / (1 - lag));
           if (v <= 0 || v >= 1) return null;
-          const rx = (14 + (j ? 40 : 72) * out(v)) * (0.85 + 0.25 * d.z);
+          const rx = (14 + (j ? 36 : 62) * out(v)) * (0.85 + 0.25 * d.z);
           const fade = Math.pow(1 - v, 1.4);
           if (vector && (fade < 0.5 || j > 0)) return null;
           return (
@@ -107,7 +127,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
               cx={d.x}
               cy={d.landY}
               rx={rx}
-              ry={rx * 0.24}
+              ry={rx * (POOL.ry / POOL.rx) * 1.05}
               fill="none"
               stroke={shade(C.sky, 0.72)}
               strokeWidth={(j ? 5 : 7.5) * (0.65 + 0.35 * fade)}
@@ -133,13 +153,30 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
           </g>
         );
       })}
+      {vector
+        ? VDROPS.map(([c, y, z], i) => {
+            const r = 13 + 4 * z;
+            const col = z > 0.5 ? C.blue : shade(C.blue, 0.2);
+            return (
+              <g key={`v${i}`} transform={`translate(${960 + COLS[c]} ${y}) scale(0.92 1.18)`}>
+                <path d={dropPath(r, r * 2.5)} fill={col} />
+                <ellipse cx={-r * 0.38} cy={-r * 0.15} rx={r * 0.22} ry={r * 0.42} fill={shade(col, 0.55)} />
+              </g>
+            );
+          })
+        : null}
+      {vector
+        ? VRINGS.map(([x, y, rx], i) => (
+            <ellipse key={`r${i}`} cx={x} cy={y} rx={rx} ry={rx * (POOL.ry / POOL.rx) * 1.05} fill="none" stroke={shade(C.sky, 0.72)} strokeWidth={7} />
+          ))
+        : null}
       {/* tetes jatuh (lahir di balik awan) */}
       {drops.map((d, i) => {
         if (d.t >= FALL) return null;
         const v = d.t / FALL;
         const y = TOP + (d.landY - 20 - TOP) * (0.55 * v + 0.45 * v * v);
         const r = 13 + 4 * d.z;
-        if (vector && y - r * 2.6 < 500) return null; // pose statis: tanpa tetes yang masih terpotong awan
+        if (vector && y - r * 2.6 < 470) return null; // pose statis: tetes boleh tampak keluar dari awan, tapi tidak tersembunyi penuh
         const stretch = 1 + 0.25 * v;
         const col = d.z > 0.5 ? C.blue : shade(C.blue, 0.2);
         return (
@@ -152,12 +189,12 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <g transform="translate(960 330) scale(1.1) translate(-960 -330)">
       {/* awan belakang (lebih gelap, paralaks) */}
       <g transform={`translate(760 ${292 + backBob}) scale(0.62) translate(-960 -380)`}>
-        <Cloud fill={shade(C.steel, -0.16)} dy={18} />
+        <Cloud fill={shade(C.steel, -0.16)} dy={18} baseOnly />
         <Cloud fill={C.steel} />
       </g>
       {/* awan utama */}
       <g transform={`translate(960 ${380 + bob}) scale(${breathe} ${2 - breathe}) translate(-960 -380)`}>
-        <Cloud fill={shade(C.mist, -0.16)} dy={18} />
+        <Cloud fill={shade(C.mist, -0.16)} dy={18} baseOnly />
         <Cloud fill={C.mist} />
         {/* kilau di puncak tonjolan */}
         <path d="M800,330 A64,64 0 0 1 846,292" fill="none" stroke={C.cloud} strokeWidth={14} strokeLinecap="round" />

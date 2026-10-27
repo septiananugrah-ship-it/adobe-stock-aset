@@ -1,8 +1,8 @@
 // Cangkir kopi hangat di atas lepek: uap berkelok naik (gelombang merambat, k bulat), gumpalan uap kecil
 // memudar, hati kecil melayang dari uap, seni latte berdenyut pelan. Seluruh gerak periodik → loop mulus.
 import React from 'react';
-import {clamp, mod, outBack, seg, TAU, wave, yoyo} from '../../kit/loop';
-import {C, shade} from '../../kit/palette';
+import {mod, outBack, seg, TAU, wave, yoyo} from '../../kit/loop';
+import {blend, C, shade} from '../../kit/palette';
 import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
 
@@ -24,7 +24,7 @@ export const meta: Meta = {
 
 const CUP = {cx: 936, top: 500, bot: 758, hw: 140, rimRy: 28};
 const MUG = C.coral;
-const STEAM = C.mist;
+const STEAM = blend(C.mist, C.steel, 0.22); // cukup kontras di latar putih, tetap terang di latar gelap
 
 // pita uap meruncing: garis tengah berkelok dengan gelombang merambat ke atas
 const ribbon = (x0: number, y0: number, h: number, p: number, ph: number, amp: number, wmax: number) => {
@@ -115,8 +115,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <Bean x={cx - 300} y={812} r={-24} />
       <Bean x={cx - 236} y={826} r={18} />
       {/* kilau */}
-      <Sparkle x={cx - 208} y={top - 66} r={(vector ? 1 : clamp(0.6 + 0.4 * wave(p, 4))) * 18} color={C.yellow} rot={12} />
-      <Sparkle x={cx + 262} y={top - 4} r={(vector ? 1 : clamp(0.6 + 0.4 * wave(p, 4, 0.5))) * 13} color={C.yellow} />
+      <Sparkle x={cx - 208} y={top - 66} r={(vector ? 1 : 0.78 + 0.22 * wave(p, 4)) * 22} color={C.yellow} rot={12} />
+      <Sparkle x={cx + 262} y={top - 4} r={(vector ? 1 : 0.78 + 0.22 * wave(p, 4, 0.5)) * 16} color={C.yellow} />
     </g>
   );
 };

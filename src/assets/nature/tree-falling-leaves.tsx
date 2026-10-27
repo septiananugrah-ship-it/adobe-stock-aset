@@ -1,5 +1,6 @@
-// Pohon rindang bergoyang tertiup angin (batang melentur, tajuk berayun berlapis), daun jingga-kuning
-// gugur berputar-putar, mendarat di rumput lalu memudar; garis angin melintas. Semua periodik → loop mulus.
+// Pohon musim gugur (tajuk jingga) bergoyang tertiup angin; daun gugur jatuh dari diam lalu melayang
+// berayun kiri-kanan (gerak "daun jatuh"), ayunan mereda dan daun merebah mulus di rumput, lalu memudar.
+// Tumpukan daun tetap di rumput, garis angin melintas. Semua periodik → loop mulus.
 import React from 'react';
 import {clamp, inOut, mix, mod, outBack, seg, TAU, wave} from '../../kit/loop';
 import {blend, C, shade} from '../../kit/palette';
@@ -9,13 +10,13 @@ import type {DrawProps, Meta} from '../../kit/types';
 export const meta: Meta = {
   id: 'nature-tree-falling-leaves',
   theme: 'nature',
-  title: 'Tree swaying in the wind with falling autumn leaves landing on grass, nature seamless loop animation with alpha channel',
+  title: 'Autumn tree swaying in the wind with falling orange leaves landing on grass, seamless loop animation with alpha channel',
   keywords: [
-    'tree', 'falling leaves', 'autumn', 'fall', 'wind', 'swaying', 'leaves', 'nature', 'season', 'park', 'garden',
-    'forest', 'breeze', 'windy', 'oak', 'foliage', 'plant', 'green', 'environment', 'ecology', 'eco', 'outdoor',
-    'landscape', 'weather', 'seasonal', 'flat design', 'illustration', 'icon', 'cartoon', 'animation',
-    'motion graphics', 'seamless loop', 'looped', 'alpha channel', 'transparent background', 'isolated', '4k',
-    'explainer', 'presentation', 'social media',
+    'autumn tree', 'falling leaves', 'autumn', 'fall', 'tree', 'wind', 'swaying', 'leaves', 'orange leaves', 'foliage',
+    'season', 'seasonal', 'nature', 'park', 'garden', 'breeze', 'windy', 'leaf fall', 'september', 'october',
+    'november', 'plant', 'environment', 'outdoor', 'weather', 'cozy', 'flat design', 'illustration', 'icon', 'cartoon',
+    'animation', 'motion graphics', 'seamless loop', 'looped', 'alpha channel', 'transparent background', 'isolated',
+    '4k', 'explainer', 'presentation', 'social media',
   ],
   category: 14,
   seconds: 8,
@@ -157,7 +158,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         {/* gumpal dalam: bulan sabit gelap di sisi kanan-bawah */}
         {canopy(INNER, shade(LEAF_MAIN, -0.1), 8, 12, 1.2)}
         {canopy(INNER, LEAF_MAIN, 0, 0, 1.2)}
-        {canopy(LIGHT, blend(LEAF_MAIN, C.yellow, 0.3), 0, 0, 1.4)}
+        {canopy(LIGHT, blend(LEAF_MAIN, C.yellow, 0.45), 0, 0, 1.4)}
         {[
           [-150, -150, 12],
           [-60, -228, 10],
@@ -168,8 +169,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       </g>
       {/* garis angin: busur tetap, segmen terang menyapu */}
       {[
-        {x: 430, y: 300, w: 250, ph: 0},
-        {x: 1130, y: 650, w: 240, ph: 0.5},
+        {x: 520, y: 330, w: 230, ph: 0},
+        {x: 1110, y: 662, w: 220, ph: 0.5},
       ].map((w, i) => {
         const t = mod(p * 2 + w.ph, 1);
         const d = `M${w.x},${w.y} c${w.w * 0.35},-30 ${w.w * 0.7},-30 ${w.w},-6`;

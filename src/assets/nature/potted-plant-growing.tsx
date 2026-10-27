@@ -1,7 +1,7 @@
 // Tanaman tumbuh di pot terakota: tunas menembus tanah, batang memanjang, daun membuka bertingkat,
 // kuncup mekar menjadi bunga, bergoyang tertiup angin, lalu menyusut kembali (loop bolak-balik).
 import React from 'react';
-import {clamp, inOut, mod, out, outBack, seg, TAU, wave, yoyo} from '../../kit/loop';
+import {clamp, inOut, inOutSine, mod, out, outBack, seg, TAU, wave, yoyo} from '../../kit/loop';
 import {C, shade} from '../../kit/palette';
 import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
@@ -58,14 +58,14 @@ const NODES = [
   {s: 0.4, side: -1, l: 140, w: 44},
   {s: 0.56, side: 1, l: 122, w: 40},
   {s: 0.71, side: -1, l: 104, w: 34},
-  {s: 0.84, side: 1, l: 80, w: 27},
+  {s: 0.84, side: 1, l: 66, w: 23},
 ];
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
-  const g = yoyo(p, 0.05, 0.38, 0.74, 0.9, inOut, inOut);
-  const hold = seg(p, 0.3, 0.42) * (1 - seg(p, 0.7, 0.8));
+  const g = yoyo(p, 0.02, 0.4, 0.7, 0.96, inOutSine, inOutSine);
+  const hold = seg(p, 0.3, 0.42) * (1 - seg(p, 0.66, 0.76));
   const bend = (22 * wave(p, 2) + 8 * wave(p, 3, 0.2)) * g;
-  const bloom = yoyo(p, 0.36, 0.47, 0.7, 0.78, (t) => outBack(t, 1.6), inOut);
+  const bloom = yoyo(p, 0.37, 0.49, 0.66, 0.75, (t) => outBack(t, 1.6), inOut);
   const bud = clamp((g - 0.82) / 0.14);
 
   // batang (poligon meruncing)
@@ -88,7 +88,10 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const tipW = (18 - 8 * g) / 2;
 
   // remah tanah saat tunas menembus
-  const crumbT = seg(p, 0.06, 0.16, (t) => t);
+  const crumbT = seg(p, 0.04, 0.14, (t) => t);
+  // antisipasi: tanah menggembung sebelum tunas muncul, lalu turun lagi (melingkupi titik loop)
+  const mq = mod(p + 0.06, 1);
+  const mound = mq < 0.12 ? Math.sin((Math.PI * mq) / 0.12) : 0;
   const crumbs = [-1, -0.45, 0.4, 0.95].map((d, i) => {
     const t = clamp(crumbT * 1.15 - i * 0.05);
     return {x: CX + d * (38 + 50 * out(t)), y: SOIL_Y - 4 - 70 * Math.sin(Math.PI * t) * (0.7 + 0.3 * Math.abs(d)), o: t > 0 && t < 1 ? Math.sin(Math.PI * t) : 0, r: 9 - (i % 2) * 2};
@@ -113,6 +116,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* tanah */}
       <ellipse cx={CX} cy={SOIL_Y + 6} rx={146} ry={14} fill={shade(C.brown, -0.38)} />
       <ellipse cx={CX} cy={SOIL_Y + 2} rx={44 * Math.min(1, g * 6)} ry={9 * Math.min(1, g * 6)} fill={shade(C.brown, -0.22)} />
+      {mound > 0.005 ? <path d={`M${CX - 46 * mound},${SOIL_Y + 4} Q${CX},${SOIL_Y + 4 - 30 * mound} ${CX + 46 * mound},${SOIL_Y + 4} Z`} fill={shade(C.brown, -0.22)} /> : null}
       {crumbs.map((c, i) =>
         c.o > 0.01 ? <circle key={i} cx={c.x} cy={c.y} r={c.r} fill={shade(C.brown, -0.2)} opacity={vector ? undefined : c.o} /> : null,
       )}
@@ -120,16 +124,16 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {g > 0.004 ? (
         <g>
           <path d={stemD} fill={shade(LEAF, -0.12)} />
-          {g < 0.9 ? <circle cx={tip[0]} cy={tip[1]} r={tipW} fill={shade(LEAF, -0.12)} /> : null}
+          <circle cx={tip[0]} cy={tip[1]} r={tipW} fill={shade(LEAF, -0.12)} />
           {NODES.map((nd, i) => {
-            const u = clamp((g - nd.s) / 0.16);
+            const u = clamp((g - nd.s) / Math.min(0.26, 1 - nd.s));
             if (u <= 0.001) return null;
             const k = outBack(u, 1.8);
             const [x, y] = stemPt(nd.s, bend);
             const sa = stemAng(nd.s, bend);
             const open = 12 + 50 * k + 5 * hold * wave(p, 3, i * 0.17);
             const ang = sa + nd.side * open;
-            return <Leaf key={i} x={x} y={y} ang={ang} l={nd.l * (0.25 + 0.75 * k)} w={nd.w * (0.15 + 0.85 * k)} flip={nd.side < 0} />;
+            return <Leaf key={i} x={x} y={y} ang={ang} l={nd.l * k} w={nd.w * k * (0.6 + 0.4 * clamp(u * 2))} flip={nd.side < 0} />;
           })}
           {/* kuncup & bunga di ujung */}
           {bud > 0.001 ? (
@@ -142,7 +146,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
               {bloom > 0.001
                 ? Array.from({length: 6}, (_, i) => {
                     const a = -90 + (i - 2.5) * 60 + 6 * wave(p, 2, i * 0.1) * hold;
-                    const len = 52 * bloom;
+                    const len = 66 * bloom;
                     return (
                       <g key={i} transform={`translate(0 -22) rotate(${a}) `}>
                         <ellipse cx={len * 0.55} cy={0} rx={len * 0.58} ry={len * 0.36} fill={i % 2 ? PETAL : shade(PETAL, -0.1)} />
@@ -151,10 +155,19 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
                     );
                   })
                 : null}
-              <g transform={`translate(0 -22) scale(${Math.max(bud * 0.55, bloom)})`}>
-                <circle r={bloom > 0.001 ? 22 : 18} fill={bloom > 0.001 ? C.yellow : shade(LEAF, -0.05)} />
-                <circle cx={-7} cy={-7} r={6} fill={bloom > 0.001 ? shade(C.yellow, 0.5) : shade(LEAF, 0.35)} />
+              {/* kuncup hijau (tertutup pusat bunga saat mekar) */}
+              <g transform={`translate(0 -22) scale(${(bud * 0.55).toFixed(3)})`}>
+                <circle r={18} fill={shade(LEAF, -0.05)} />
+                <circle cx={-7} cy={-7} r={6} fill={shade(LEAF, 0.35)} />
               </g>
+              {bloom > 0.001 ? (
+                <g transform={`translate(0 -22) scale(${bloom.toFixed(3)})`}>
+                  <circle r={27} fill={C.yellow} />
+                  <circle r={27} cx={4} cy={4} fill={shade(C.yellow, -0.08)} />
+                  <circle r={22} fill={C.yellow} />
+                  <circle cx={-9} cy={-9} r={7} fill={shade(C.yellow, 0.5)} />
+                </g>
+              ) : null}
             </g>
           ) : null}
         </g>
