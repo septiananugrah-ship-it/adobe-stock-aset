@@ -126,7 +126,9 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const bd0 = mix(DM - Lb, 0, morph);
   const bd1 = mix(DM, L0, morph);
   const peak = 30 * clamp(bot / (0.08 * SAND)) * (1 - settle);
-  const dip = 14 * clamp(top / (0.1 * SAND)) * (1 - seg(p, FLOW1 - 0.03, FLOW1 + 0.01));
+  const neckBand = Math.min(L0, 30) * seg(morph, 0.8, 1);
+  // kawah di permukaan atas terbentuk perlahan setelah pasir mulai mengalir (p = 0 identik dengan akhir loop)
+  const dip = 14 * clamp(top / (0.1 * SAND)) * seg(p, 0, 0.08, inOut) * (1 - seg(p, FLOW1 - 0.03, FLOW1 + 0.01));
   // aliran: kepala jatuh dari leher di awal, ekor jatuh di akhir
   const yBot = NY + (DM - Lb) - peak + 4;
   const head = seg(p, 0, 0.028, (t) => t * t);
@@ -143,7 +145,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       {/* tumpukan koin: 1 koin dasar + 3 koin jatuh selama pasir mengalir, hilang bertingkat saat dibalik */}
       <FlatCoin x={SX} y={stackY(0)} />
       {DROPS.map((t0, i) => {
-        const appear = seg(p, t0, t0 + 0.035, (t) => outBack(t, 2));
+        const appear = seg(p, t0, t0 + 0.045, (t) => outBack(t, 1.4));
         const fall = seg(p, t0 + 0.045, t0 + 0.105, (t) => t * t);
         const land = t0 + 0.105;
         const gone = seg(p, 0.79 + (2 - i) * 0.035, 0.85 + (2 - i) * 0.035, inOut);
@@ -167,6 +169,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         {Lt > 1 ? <path d={sandPath(-1, 0, Math.min(Lt, 30), 0, 0)} fill={SAND_D} /> : null}
         {/* pasir bawah */}
         {bd1 - bd0 > 1 ? <path d={sandPath(1, bd0, bd1, morph > 0 ? peak * (1 - morph) : peak, 0)} fill={SAND_C} /> : null}
+        {/* pasir yang memadat di leher setelah dibalik (= pita gelap bulb atas di p = 0) */}
+        {neckBand > 1 ? <path d={sandPath(1, bd0, bd0 + neckBand, 0, 0)} fill={SAND_D} /> : null}
         {/* aliran pasir */}
         {streamOn ? (
           <g>

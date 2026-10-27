@@ -26,7 +26,7 @@ const PY = 560;
 const RX = 228;
 const RY = 182;
 const FLOOR = 800;
-const SLOT_Y = PY - RY + 4; // garis celah di punggung
+const SLOT_Y = PY - RY + 28; // garis tengah celah (tertanam di punggung)
 const PINK = C.pink;
 const COIN_R = 50;
 const DROPS = [0.1, 0.36, 0.62]; // koin muncul
@@ -64,7 +64,7 @@ const FlatCoin: React.FC<{x: number; y: number}> = ({x, y}) => (
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   // koin: muncul → melayang → jatuh berputar ke celah
   const coins = DROPS.map((t0, i) => {
-    const appear = seg(p, t0, t0 + 0.04, (t) => outBack(t, 2));
+    const appear = seg(p, t0, t0 + 0.05, (t) => outBack(t, 1.5));
     const f = seg(p, t0 + FALL0, t0 + FALL0 + FALL, (t) => t * t);
     const land = t0 + FALL0 + FALL;
     const y = 190 + 8 * wave(p, 4, i * 0.3) * (1 - f) + (SLOT_Y + COIN_R + 20 - 190) * f;
@@ -93,8 +93,13 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <Sparkle x={742} y={FLOOR - 128} r={16 * (0.6 + 0.4 * wave01(p, 3))} color={C.yellow} rot={10} />
       <g transform={`translate(${PX} ${bodyY}) scale(${sx.toFixed(4)} ${sy.toFixed(4)}) translate(${-PX} ${-bodyY})`}>
         {/* kaki belakang (jauh) */}
-        <rect x={PX - 150} y={PY + 120} width={58} height={FLOOR - PY - 112} rx={22} fill={D} />
-        <rect x={PX + 98} y={PY + 120} width={58} height={FLOOR - PY - 112} rx={22} fill={D} />
+        <rect x={PX - 158} y={PY + 100} width={58} height={FLOOR - PY - 92} rx={22} fill={D} />
+        <rect x={PX + 62} y={PY + 100} width={58} height={FLOOR - PY - 92} rx={22} fill={D} />
+        {/* kaki dekat (pangkalnya tertutup badan) */}
+        <rect x={PX - 116} y={PY + 100} width={62} height={FLOOR - PY - 92} rx={24} fill={PINK} />
+        <rect x={PX + 104} y={PY + 100} width={62} height={FLOOR - PY - 92} rx={24} fill={PINK} />
+        <rect x={PX - 116} y={FLOOR - 26} width={62} height={18} rx={9} fill={D} />
+        <rect x={PX + 104} y={FLOOR - 26} width={62} height={18} rx={9} fill={D} />
         {/* ekor melingkar */}
         <g transform={`rotate(${tail} ${PX - RX + 8} ${PY - 10})`}>
           <path
@@ -111,13 +116,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         <ellipse cx={PX} cy={PY} rx={RX} ry={RY} fill={D} />
         <ellipse cx={PX - 10} cy={PY - 12} rx={RX - 14} ry={RY - 16} fill={PINK} />
         {/* kilau badan */}
-        <path d={`M${PX - RX + 56},${PY - 70} A${RX - 50},${RY - 40} 0 0 1 ${PX - 70},${PY - RY + 40}`} fill="none" stroke={L} strokeWidth={14} strokeLinecap="round" />
-        <circle cx={PX - 40} cy={PY - RY + 36} r={8} fill={L} />
-        {/* kaki dekat */}
-        <rect x={PX - 110} y={PY + 132} width={62} height={FLOOR - PY - 124} rx={24} fill={PINK} />
-        <rect x={PX + 140} y={PY + 120} width={62} height={FLOOR - PY - 112} rx={24} fill={PINK} />
-        <rect x={PX - 110} y={FLOOR - 26} width={62} height={18} rx={9} fill={D} />
-        <rect x={PX + 140} y={FLOOR - 26} width={62} height={18} rx={9} fill={D} />
+        <path d={`M${PX - RX + 56},${PY - 70} A${RX - 50},${RY - 40} 0 0 1 ${PX - 128},${PY - RY + 56}`} fill="none" stroke={L} strokeWidth={14} strokeLinecap="round" />
+        <circle cx={PX - 100} cy={PY - RY + 45} r={8} fill={L} />
         {/* telinga dekat */}
         <path d={roundedPath([[PX + 70, PY - RY + 52], [PX + 112, PY - RY - 36], [PX + 166, PY - RY + 52]], 18)} fill={PINK} />
         <path d={roundedPath([[PX + 96, PY - RY + 44], [PX + 114, PY - RY - 6], [PX + 144, PY - RY + 44]], 10)} fill={D} />
@@ -133,12 +133,13 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         </g>
         <ellipse cx={PX + 112} cy={PY + 40} rx={26} ry={16} fill={shade(PINK, 0.3)} />
         {/* celah koin */}
-        <rect x={PX - 78} y={SLOT_Y - 2} width={136} height={22} rx={11} fill={DD} />
+        <rect x={PX - 72} y={SLOT_Y - 11} width={124} height={22} rx={11} fill={DD} />
+        <rect x={PX - 60} y={SLOT_Y + 5} width={100} height={6} rx={3} fill={shade(PINK, -0.55)} />
       </g>
       {/* koin jatuh: terpotong di garis celah (motion), utuh di atasnya */}
       {!vector ? (
         <clipPath id="business-piggy-bank-coins-clip">
-          <rect x={0} y={0} width={1920} height={SLOT_Y + 9} />
+          <rect x={0} y={0} width={1920} height={bodyY + (SLOT_Y - bodyY) * sy} />
         </clipPath>
       ) : null}
       {coins.map(({i, appear, y, sx: csx, gone}) =>

@@ -1,7 +1,7 @@
 // Monitor dengan grafik batang + garis yang tumbuh, bertahan, lalu surut (loop bolak-balik).
 import React from 'react';
 import {inOut, outBack, seg, wave, wave01, yoyo} from '../../kit/loop';
-import {C, shade} from '../../kit/palette';
+import {C, blend, shade} from '../../kit/palette';
 import {Shadow, Sparkle} from '../../kit/shapes';
 import type {DrawProps, Meta} from '../../kit/types';
 
@@ -25,8 +25,15 @@ const SCR = {x: 600, y: 230, w: 720, h: 430, r: 26};
 const IN = {x: SCR.x + 22, y: SCR.y + 22, w: SCR.w - 44, h: SCR.h - 44};
 const PLOT = {x: IN.x + 56, y: IN.y + 50, w: IN.w - 112, h: IN.h - 120};
 const BASE_Y = PLOT.y + PLOT.h;
+const SCREEN = blend(C.navy, C.blue, 0.17);
 const BARS = [0.28, 0.42, 0.36, 0.58, 0.52, 0.74, 0.9];
 const LINE = [0.2, 0.34, 0.3, 0.5, 0.46, 0.68, 0.86];
+
+/** Batang dengan sudut atas membulat dan dasar rata (duduk di garis dasar). rightOnly: hanya sudut kanan atas. */
+const topRound = (x: number, y: number, w: number, h: number, r: number, rightOnly = false) => {
+  const rl = rightOnly ? 0 : r;
+  return `M${x},${y + h} L${x},${y + rl} Q${x},${y} ${x + rl},${y} L${x + w - r},${y} Q${x + w},${y} ${x + w},${y + r} L${x + w},${y + h} Z`;
+};
 
 export const Draw: React.FC<DrawProps> = ({p, vector}) => {
   const n = BARS.length;
@@ -54,19 +61,22 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <Shadow cx={960} cy={872} rx={300} ry={26} vector={vector} />
       {/* kaki & dasar */}
       <path d="M915,660 L1005,660 L1025,812 L895,812 Z" fill={C.mist} />
-      <path d="M960,660 L1005,660 L1025,812 L960,812 Z" fill={shade(C.mist, -0.12)} />
-      <rect x={810} y={800} width={300} height={34} rx={17} fill={C.cloud} />
-      <rect x={810} y={818} width={300} height={16} rx={8} fill={shade(C.cloud, -0.12)} />
+      <path d="M960,660 L1005,660 L1025,812 L960,812 Z" fill={shade(C.mist, -0.14)} />
+      <rect x={810} y={798} width={300} height={36} rx={18} fill={shade(C.mist, -0.22)} />
+      <rect x={810} y={798} width={300} height={24} rx={12} fill={C.mist} />
+      <rect x={834} y={804} width={120} height={7} rx={3.5} fill={shade(C.mist, 0.5)} />
       {/* bingkai monitor dengan sisi tebal (kesan 3D) */}
-      <rect x={SCR.x + 10} y={SCR.y + 12} width={SCR.w} height={SCR.h} rx={SCR.r} fill={shade(C.navy, -0.25)} />
-      <rect x={SCR.x} y={SCR.y} width={SCR.w} height={SCR.h} rx={SCR.r} fill={C.navy} />
-      <rect x={IN.x} y={IN.y} width={IN.w} height={IN.h} rx={12} fill="#22365F" />
+      <rect x={SCR.x + 10} y={SCR.y + 12} width={SCR.w} height={SCR.h} rx={SCR.r} fill={shade(C.ink, -0.32)} />
+      <rect x={SCR.x} y={SCR.y} width={SCR.w} height={SCR.h} rx={SCR.r} fill={C.ink} />
+      <rect x={SCR.x + 30} y={SCR.y + 7} width={160} height={7} rx={3.5} fill={shade(C.ink, 0.3)} />
+      <circle cx={SCR.x + SCR.w / 2} cy={SCR.y + 11} r={4.5} fill={shade(C.ink, 0.3)} />
+      <rect x={IN.x} y={IN.y} width={IN.w} height={IN.h} rx={12} fill={SCREEN} />
       {/* kisi */}
       {Array.from({length: 5}, (_, i) => (
-        <rect key={`h${i}`} x={PLOT.x} y={PLOT.y + (PLOT.h * i) / 4 - 1} width={PLOT.w} height={2} fill="#2E4677" />
+        <rect key={`h${i}`} x={PLOT.x} y={PLOT.y + (PLOT.h * i) / 4 - 1} width={PLOT.w} height={2} fill={blend(C.navy, C.blue, 0.32)} />
       ))}
       {Array.from({length: n + 1}, (_, i) => (
-        <rect key={`v${i}`} x={PLOT.x + slot * i - 1} y={PLOT.y} width={2} height={PLOT.h} fill="#2A4070" />
+        <rect key={`v${i}`} x={PLOT.x + slot * i - 1} y={PLOT.y} width={2} height={PLOT.h} fill={blend(C.navy, C.blue, 0.27)} />
       ))}
       {/* batang */}
       {BARS.map((v, i) => {
@@ -77,8 +87,8 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
         const col = i % 2 ? C.sky : C.blue;
         return (
           <g key={i}>
-            <rect x={x} y={BASE_Y - h} width={bw} height={h} rx={Math.min(8, h / 2)} fill={col} />
-            <rect x={x + bw * 0.62} y={BASE_Y - h} width={bw * 0.38} height={h} rx={Math.min(8, h / 2)} fill={shade(col, -0.14)} />
+            <path d={topRound(x, BASE_Y - h, bw, h, Math.min(8, h / 2))} fill={col} />
+            <path d={topRound(x + bw * 0.62, BASE_Y - h, bw * 0.38, h, Math.min(8, h / 2), true)} fill={shade(col, -0.14)} />
             <rect x={x + 6} y={BASE_Y - h + 6} width={6} height={Math.max(0, h - 16)} rx={3} fill={shade(col, 0.35)} />
           </g>
         );
@@ -118,7 +128,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
       <g opacity={legend >= 1 ? undefined : legend}>
         <rect x={PLOT.x} y={BASE_Y + 30} width={72 * legend} height={12} rx={6} fill={C.sky} />
         <rect x={PLOT.x + 92} y={BASE_Y + 30} width={46 * legend} height={12} rx={6} fill={C.pink} />
-        <rect x={PLOT.x + PLOT.w - 70} y={BASE_Y + 30} width={70 * legend} height={12} rx={6} fill="#3A5287" />
+        <rect x={PLOT.x + PLOT.w - 70} y={BASE_Y + 30} width={70 * legend} height={12} rx={6} fill={blend(C.navy, C.blue, 0.45)} />
       </g>
       {/* kilau kaca bergerak menyapu layar (periodik) */}
       {!vector ? (

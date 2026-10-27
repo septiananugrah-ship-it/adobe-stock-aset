@@ -97,7 +97,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
 
   const stacks = XS.map((x, s) => {
     const items = COINS.filter((c) => c.s === s);
-    const shown = items.filter((c) => c.t0 < 0 || p >= c.t0);
+    const shown = items.filter((c) => c.t0 < 0 || (p >= c.t0 && collapse[s] < 0.995));
     // tumpukan memantul tiap koin mendarat
     const squash = items.reduce((a, c) => (c.t0 < 0 ? a : a * pop(p, c.t0 + FALL, 0.06, 0.05)), 1);
     return {x, s, items: shown, squash};
@@ -141,7 +141,7 @@ export const Draw: React.FC<DrawProps> = ({p, vector}) => {
                 o = clamp(f / 0.35);
               }
               const dx = c.dx * (1 - col);
-              const g = Math.exp(-Math.pow((c.j - (glintPos * (COUNTS[s] + 3) - 1.5 - s * 0.6)) / 1.1, 2)) * (glintPos > 0 && glintPos < 1 ? 1 : 0);
+              const g = Math.exp(-Math.pow((c.j - (glintPos * (COUNTS[s] + 5) - 2.5 - s * 0.6)) / 1.1, 2)) * Math.sin(Math.PI * glintPos);
                             return (
                 <g key={c.j} opacity={o >= 1 ? undefined : o}>
                   <SideCoin x={x + dx} y={yy} glint={g} top />
